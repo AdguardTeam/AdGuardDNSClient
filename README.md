@@ -1,4 +1,4 @@
-# AdGuardDNSClient
+# AdGuard DNS Client
 
-A simple client for [AGDNS](github.com/AdguardTeam/AdGuardDNS) that routes DNS
-queries.
+A simple client for [AdGuard DNS](github.com/AdguardTeam/AdGuardDNS) that routes
+DNS queries.
