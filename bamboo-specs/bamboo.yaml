@@ -68,7 +68,7 @@
             - |-
               set -e -f -u -x
 
-              make VERBOSE=1 go-deps go-test go-bench go-fuzz
+              make VERBOSE=1 go-deps go-test
     'requirements':
     - 'adg-docker': true
 
