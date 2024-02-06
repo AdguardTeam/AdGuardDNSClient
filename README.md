@@ -11,7 +11,7 @@ server that forwards DNS requests to the corresponding upstream resolvers.
 
 Supported platforms:
 
- *  Darwin-based OSs (macOS);
+ *  macOS;
  *  Linux;
  *  Windows.
 
@@ -51,4 +51,4 @@ The YAML configuration file is described in the [`doc/configuration.md`] file.
 
 [`doc/configuration.md`]: doc/configuration.md
 
-<!-- TODO(e.burkov): Add sections about environment and . -->
+<!-- TODO(e.burkov): Add sections about environment. -->

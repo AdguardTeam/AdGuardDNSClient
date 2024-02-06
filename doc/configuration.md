@@ -108,12 +108,12 @@ following properties:
         contain the following properties:
 
          *  <a href="#dns-upstream-group-match-question_domain" id="dns-upstream-group-match-question_domain" name="dns-upstream-group-match-question_domain">`question_domain`</a>:
-            The domain or a suffix of the domain the set of upstream servers
-            should be used to resolve.
+            The domain or a suffix of the domain that the set of upstream
+            servers should be used to resolve.
 
          *  <a href="#dns-upstream-group-match-client" id="dns-upstream-group-match-client" name="dns-upstream-group-match-client">`client`</a>:
-            The client's address or a subnet of the client's address the set of
-            upstream servers should be used to resolve requests from.
+            The client's address or a subnet of the client's address that the
+            set of upstream servers should be used to resolve requests from.
 
         Note, that properties specified within a single entry are combined with a
         logical *AND*.  Entries are combined with a logical *OR*.
@@ -127,6 +127,9 @@ following properties:
           - question_domain: 'mycompany.extrenal'
           - client: '1.2.3.4'
         ```
+
+   Note, that `groups` should contain at least a single entry having no `match`
+   property, and therefore treated as a default group.
 
  *  <a href="#dns-upstream-timeout" id="dns-upstream-timeout" name="dns-upstream-timeout">`timeout`</a>:
     The timeout for upstream DNS requests.
