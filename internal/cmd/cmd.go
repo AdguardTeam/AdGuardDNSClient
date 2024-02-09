@@ -5,30 +5,36 @@ import (
 	"context"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/version"
+	"github.com/AdguardTeam/golibs/log"
 	"github.com/AdguardTeam/golibs/logutil/slogutil"
 )
 
 // logFormat is the used implementation of the log.
 //
-// TODO(e.burkov):  Consider making configurable.
+// TODO(e.burkov):  Use [log/slog] in [dnsproxy] and remove this.
 const logFormat = slogutil.FormatAdGuardLegacy
 
-// Main is the entrypoint of AdGuardDNSClient.  Main may accept arguments, such as
-// embedded assets and command-line arguments.
+// Main is the entrypoint of AdGuardDNSClient.  Main may accept arguments, such
+// as embedded assets and command-line arguments.
 func Main() {
 	ctx := context.Background()
 
-	conf, err := parseConfiguration(defaultConfigPath)
+	conf, err := parseConfig(defaultConfigPath)
 	check(err)
+
+	check(conf.validate())
 
 	// Error is always nil for the moment.
 	logFmt, _ := slogutil.NewFormat(logFormat)
 
+	// TODO(e.burkov):  Configure timestamp and output.
 	l := slogutil.New(&slogutil.Config{
-		Format: logFmt,
-		// TODO(e.burkov):  Configure timestamp.
+		Format:  logFmt,
 		Verbose: conf.Log.Verbose,
 	})
+	if conf.Log.Verbose {
+		log.SetLevel(log.DEBUG)
+	}
 
 	// TODO(a.garipov): Copy logs configuration from the WIP abt. slog.
 	buildVersion, revision, branch := version.Version(), version.Revision(), version.Branch()
@@ -40,12 +46,6 @@ func Main() {
 		"branch", branch,
 		"commit_time", version.CommitTime(),
 		"race", version.RaceEnabled,
+		"verbose", conf.Log.Verbose,
 	)
-}
-
-// check is a simple error-checking helper.  It must only be used within Main.
-func check(err error) {
-	if err != nil {
-		panic(err)
-	}
 }

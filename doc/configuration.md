@@ -128,8 +128,9 @@ following properties:
           - client: '1.2.3.4'
         ```
 
-   Note, that `groups` should contain at least a single entry having no `match`
-   property, and therefore treated as a default group.
+    Note, that `groups` should contain at least a single entry named `default`
+    without `match` property.  It will be used when there are no matches among
+    other groups.
 
  *  <a href="#dns-upstream-timeout" id="dns-upstream-timeout" name="dns-upstream-timeout">`timeout`</a>:
     The timeout for upstream DNS requests.
@@ -168,8 +169,8 @@ properties:
 
    ###  <a href="#debug-pprof" id="debug-pprof" name="debug-pprof">`pprof`</a>
 
-   The `pprof` object configures the [`pprof`][pkg-pprof] HTTP handlers.  It has
-   the following properties:
+The `pprof` object configures the [`pprof`][pkg-pprof] HTTP handlers.  It has
+the following properties:
 
  *  <a href="#debug-pprof-port" id="debug-pprof-port" name="debug-pprof-port">`port`</a>:
     The port to listen on for debug HTTP requests on localhost.
@@ -194,7 +195,7 @@ The `log` object configures the logging.  It has the following properties:
 
     **Example:** `'C:\Users\Admin\Logs\dnslog.txt'`.
 
- * <a href="#log-verbose" id="log-verbose" name="log-verbose">`verbose`</a>:
+ *  <a href="#log-verbose" id="log-verbose" name="log-verbose">`verbose`</a>:
     If the log should be more informative.
 
     **Example:** `false`.
