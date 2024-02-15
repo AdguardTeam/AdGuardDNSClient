@@ -15,6 +15,12 @@ Supported platforms:
  *  Linux;
  *  Windows.
 
+Supported architectures:
+
+ *  64-bit ARM;
+ *  AMD64;
+ *  i386.
+
 
 
    ###  <a href="#start-basic" id="start-basic" name="start-basic">Basic</a>
@@ -48,7 +54,10 @@ To run the server as is:
    ###  <a href="#conf-file" id="conf-file" name="conf-file">File</a>
 
 The YAML configuration file is described in the [`doc/configuration.md`] file.
+Also, there is a sample configuration file `config.dist.yaml`.
 
 [`doc/configuration.md`]: doc/configuration.md
 
 <!-- TODO(e.burkov): Add sections about environment. -->
+
+<!-- TODO(e.burkov): Add GitHub issue templates. -->

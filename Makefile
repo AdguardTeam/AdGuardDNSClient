@@ -26,7 +26,7 @@ GOPROXY = https://goproxy.cn|https://proxy.golang.org|direct
 GOTOOLCHAIN = go1.21.6
 RACE = 0
 REVISION = $$( git rev-parse --short HEAD )
-VERSION = 0
+VERSION = v0.0.0
 
 ENV = env\
 	BRANCH="$(BRANCH)"\
@@ -45,6 +45,8 @@ ENV = env\
 # Keep this target first, so that a naked make invocation triggers a
 # full build.
 build: go-deps go-build
+
+build-release: ; $(ENV) "$(SHELL)" ./scripts/make/build-release.sh
 
 init: ; git config core.hooksPath ./scripts/hooks
 

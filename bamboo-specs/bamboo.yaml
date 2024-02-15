@@ -13,6 +13,7 @@
     'dockerGo': 'golang:1.21.6'
     'maintainer': 'Adguard DNS Team'
     'name': 'AdGuardDNSClient'
+    'channel': 'development'
 
 'stages':
 -
@@ -27,6 +28,12 @@
         'final': false
         'jobs':
         - 'Test'
+-
+    'Artifact':
+        'manual': false
+        'final': false
+        'jobs':
+        - 'Artifact'
 
 'Lint':
     'docker':
@@ -44,6 +51,8 @@
             'interpreter': 'SHELL'
             'scripts':
             - |-
+              #!/bin/sh
+
               set -e -f -u -x
 
               make VERBOSE=1 go-tools go-lint
@@ -66,13 +75,65 @@
             'interpreter': 'SHELL'
             'scripts':
             - |-
+              #!/bin/sh
+
               set -e -f -u -x
 
               make VERBOSE=1 go-deps go-test
     'requirements':
     - 'adg-docker': true
 
-# TODO(e.burkov):  Add build-release.sh.
+'Artifact':
+    'docker':
+        'image': '${bamboo.dockerGo}'
+        'volumes':
+            '${system.GO_CACHE_DIR}': '${bamboo.cacheGo}'
+            '${system.GO_PKG_CACHE_DIR}': '${bamboo.cacheGoPkg}'
+    'key': 'ART'
+    'other':
+         'clean-working-dir': true
+    'tasks':
+    -
+        'checkout':
+            'force-clean-build': true
+    -
+        'script':
+            'interpreter': 'SHELL'
+            'scripts':
+            - |-
+              #!/bin/sh
+
+              set -e -f -u -x
+
+              # Explicitly checkout the revision that we need.
+              git checkout "${bamboo.repository.revision.number}"
+
+              make\
+                  ARCH="amd64"\
+                  OS="windows darwin linux"\
+                  CHANNEL=${bamboo.channel}\
+                  SIGN=0\
+                  PARALLELISM=1\
+                  VERBOSE=2\
+                  build-release
+    'artifacts':
+    -
+        'name': 'AdGuardDNSClient_windows_amd64'
+        'pattern': 'dist/AdGuardDNSClient_windows_amd64.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_darwin_amd64'
+        'pattern': 'dist/AdGuardDNSClient_darwin_amd64.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_linux_amd64'
+        'pattern': 'dist/AdGuardDNSClient_linux_amd64.tar.gz'
+        'shared': true
+        'required': true
+    'requirements':
+      - 'adg-docker': 'true'
 
 'branches':
     'create': 'for-pull-request'
@@ -81,9 +142,9 @@
         'after-inactive-days': 5
     'link-to-jira': true
 
-# Run only the "Lint" and "Test" stages in any branch save for "master".
 'branch-overrides':
 -
+    # Run only the "Lint" and "Test" stages in any branch save for "master".
     '^((?!master).)*$':
         'stages':
         -
