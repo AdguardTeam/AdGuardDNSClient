@@ -6,11 +6,9 @@
     'name': 'AdGuardDNSClient'
 'variables':
     'dockerFpm': 'alanfranz/fpm-within-docker:ubuntu-bionic'
-    # When there is a patch release of Go available, set this property to an
-    # exact patch version as opposed to a minor one to make sure that this exact
-    # version is actually used and not whatever the docker daemon on the CI has
-    # cached a few months ago.
-    'dockerGo': 'golang:1.21.6'
+    # TODO(e.burkov):  Use the golang:1.X.X image from the official repo, or
+    # improve the golang-ubuntu image.
+    'dockerGo': 'adguard/golang-ubuntu:8.0'
     'maintainer': 'Adguard DNS Team'
     'name': 'AdGuardDNSClient'
     'channel': 'development'
