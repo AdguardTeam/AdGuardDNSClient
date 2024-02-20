@@ -157,6 +157,14 @@
                 'final': false
                 'jobs':
                 - 'Test'
+-
+    # rc-vX.Y.Z branches are the release candidate branches. They are created
+    # from the release branch and are used to build the release candidate
+    # images.  The "candidate" pseudo-channel is used to generate version.
+    '^rc-v[0-9]+\.[0-9]+\.[0-9]+':
+        'variables':
+            'dockerGo': 'adguard/golang-ubuntu:8.0'
+            'channel': 'candidate'
 
 'notifications':
 -
