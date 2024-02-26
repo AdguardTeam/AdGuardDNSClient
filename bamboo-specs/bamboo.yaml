@@ -6,9 +6,7 @@
     'name': 'AdGuardDNSClient'
 'variables':
     'dockerFpm': 'alanfranz/fpm-within-docker:ubuntu-bionic'
-    # TODO(e.burkov):  Use the golang:1.X.X image from the official repo, or
-    # improve the golang-ubuntu image.
-    'dockerGo': 'adguard/golang-ubuntu:8.0'
+    'dockerGo': 'adguard/go-builder:1.21.7--1'
     'maintainer': 'Adguard DNS Team'
     'name': 'AdGuardDNSClient'
     'channel': 'development'
