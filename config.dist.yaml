@@ -13,7 +13,7 @@ dns:
         # Addresses for server to listen to.
         listen_addresses:
           - address: '127.0.0.1:53'
-          - address: '192.168.1.1'
+          - address: '192.168.1.1:53'
     # DNS bootstrap settings.
     bootstrap:
         # List of bootstrap DNS servers to resolve DNS names of upstream

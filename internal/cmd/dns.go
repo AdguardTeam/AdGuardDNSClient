@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"net/netip"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
+	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/mapsutil"
 	"github.com/AdguardTeam/golibs/netutil"
@@ -338,4 +340,54 @@ func (c *upstreamMatchConfig) validate() (err error) {
 	}
 
 	return nil
+}
+
+// toInternal converts the DNS configuration to the internal representation.
+func (c *dnsConfig) toInternal() (conf *dnssvc.Config, err error) {
+	listenAddrs := make([]netip.AddrPort, 0, len(c.Server.ListenAddresses))
+	for i, addr := range c.Server.ListenAddresses {
+		var addrPort netip.AddrPort
+		addrPort, err = netip.ParseAddrPort(addr.Address)
+		if err != nil {
+			return nil, fmt.Errorf("listen address at index %d: %w", i, err)
+		}
+
+		listenAddrs = append(listenAddrs, addrPort)
+	}
+
+	bootstraps := make([]netip.AddrPort, 0, len(c.Bootstrap.Servers))
+	for i, s := range c.Bootstrap.Servers {
+		var addrPort netip.AddrPort
+		addrPort, err = netip.ParseAddrPort(s.Address)
+		if err != nil {
+			return nil, fmt.Errorf("bootstrap server at index %d: %w", i, err)
+		}
+
+		bootstraps = append(bootstraps, addrPort)
+	}
+
+	falls := make([]string, 0, len(c.Fallback.Servers))
+	for _, s := range c.Fallback.Servers {
+		falls = append(falls, s.Address)
+	}
+
+	// TODO(e.burkov):  Add other upstreams and fallbacks.
+
+	return &dnssvc.Config{
+		ListenAddrs: listenAddrs,
+		Bootstrap: &dnssvc.BootstrapConfig{
+			Addresses: bootstraps,
+			Timeout:   c.Bootstrap.Timeout.Duration,
+		},
+		Upstreams: &dnssvc.UpstreamConfig{
+			Addresses: []string{
+				c.Upstream.Groups[agdc.UpstreamGroupNameDefault].Address,
+			},
+			Timeout: c.Upstream.Timeout.Duration,
+		},
+		Fallbacks: &dnssvc.FallbackConfig{
+			Addresses: falls,
+			Timeout:   c.Fallback.Timeout.Duration,
+		},
+	}, nil
 }

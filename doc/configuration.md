@@ -52,7 +52,7 @@ The `server` object configures the handling of incoming requests.  It has the
 following properties:
 
  *  <a href="#dns-server-listen_addresses" id="dns-server-listen_addresses" name="dns-server-listen_addresses">`listen_addresses`</a>:
-    The set of addresses to listen on.
+    The set of addresses with ports to listen on.
 
     **Property example:**
 

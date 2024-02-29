@@ -8,3 +8,5 @@ type UpstreamGroupName string
 // UpstreamGroupNameDefault is the reserved name for an upstream group that
 // matches all requests and must appear in the configuration.
 const UpstreamGroupNameDefault UpstreamGroupName = "default"
+
+// TODO(e.burkov):  We may need one more special group for local PTR requests.
