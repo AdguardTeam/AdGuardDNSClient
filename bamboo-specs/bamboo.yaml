@@ -6,7 +6,7 @@
     'name': 'AdGuardDNSClient'
 'variables':
     'dockerFpm': 'alanfranz/fpm-within-docker:ubuntu-bionic'
-    'dockerGo': 'adguard/go-builder:1.21.7--1'
+    'dockerGo': 'adguard/go-builder:1.21.7--2'
     'maintainer': 'Adguard DNS Team'
     'name': 'AdGuardDNSClient'
     'channel': 'development'
@@ -77,7 +77,7 @@
 
               make VERBOSE=1 go-deps go-test
     'requirements':
-    - 'adg-docker': true
+    - 'adg-docker': 'true'
 
 'Artifact':
     'docker':
@@ -91,6 +91,13 @@
     'tasks':
     -
         'checkout':
+            'repository': 'bamboo-deploy-publisher'
+            # The paths are always relative to the working directory.
+            'path': 'bamboo-deploy-publisher'
+            'force-clean-build': true
+    -
+        'checkout':
+            'path': '${bamboo.name}'
             'force-clean-build': true
     -
         'script':
@@ -101,31 +108,40 @@
 
               set -e -f -u -x
 
+              # Follow the working repository path.
+              cd "${bamboo.name}"
+
               # Explicitly checkout the revision that we need.
               git checkout "${bamboo.repository.revision.number}"
+
+              echo "${bamboo.gpgSecretKeyPart1}${bamboo.gpgSecretKeyPart2}"\
+                  | awk '{ gsub(/\\n/, "\n"); print; }'\
+                  | gpg --import --batch --yes
 
               make\
                   ARCH="amd64"\
                   OS="windows darwin linux"\
                   CHANNEL=${bamboo.channel}\
-                  SIGN=0\
+                  GPG_KEY_PASSPHRASE=${bamboo.gpgPassword}\
+                  DEPLOY_SCRIPT_PATH="../bamboo-deploy-publisher/deploy.sh"\
+                  SIGNER_API_KEY="${bamboo.adguardDnsClientWinSignerSecretApiKey}"\
                   PARALLELISM=1\
                   VERBOSE=2\
                   build-release
     'artifacts':
     -
         'name': 'AdGuardDNSClient_windows_amd64'
-        'pattern': 'dist/AdGuardDNSClient_windows_amd64.zip'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.zip'
         'shared': true
         'required': true
     -
         'name': 'AdGuardDNSClient_darwin_amd64'
-        'pattern': 'dist/AdGuardDNSClient_darwin_amd64.zip'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_amd64.zip'
         'shared': true
         'required': true
     -
         'name': 'AdGuardDNSClient_linux_amd64'
-        'pattern': 'dist/AdGuardDNSClient_linux_amd64.tar.gz'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
         'shared': true
         'required': true
     'requirements':
@@ -161,7 +177,7 @@
     # images.  The "candidate" pseudo-channel is used to generate version.
     '^rc-v[0-9]+\.[0-9]+\.[0-9]+':
         'variables':
-            'dockerGo': 'adguard/go-builder:1.21.7--1'
+            'dockerGo': 'adguard/go-builder:1.21.7--2'
             'channel': 'candidate'
 
 'notifications':

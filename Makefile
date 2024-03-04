@@ -21,22 +21,34 @@ GO.MACRO = $${GO:-go}
 VERBOSE.MACRO = $${VERBOSE:-0}
 
 BRANCH = $$( git rev-parse --abbrev-ref HEAD )
+REVISION = $$( git rev-parse --short HEAD )
+DIST_DIR = dist
 GOAMD64 = v1
 GOPROXY = https://goproxy.cn|https://proxy.golang.org|direct
 GOTOOLCHAIN = go1.21.7
+GPG_KEY = devteam@adguard.com
+GPG_KEY_PASSPHRASE = not-a-real-password
 RACE = 0
-REVISION = $$( git rev-parse --short HEAD )
+SIGN = 1
+DEPLOY_SCRIPT_PATH = not/a/real/path
+SIGNER_API_KEY = not-a-real-key
 VERSION = v0.0.0
 
 ENV = env\
 	BRANCH="$(BRANCH)"\
+	REVISION="$(REVISION)"\
+	DIST_DIR='$(DIST_DIR)'\
 	GO="$(GO.MACRO)"\
 	GOAMD64='$(GOAMD64)'\
 	GOPROXY='$(GOPROXY)'\
 	GOTOOLCHAIN='$(GOTOOLCHAIN)'\
+	GPG_KEY='$(GPG_KEY)'\
+	GPG_KEY_PASSPHRASE='$(GPG_KEY_PASSPHRASE)'\
+	DEPLOY_SCRIPT_PATH='$(DEPLOY_SCRIPT_PATH)' \
+	SIGNER_API_KEY='$(SIGNER_API_KEY)' \
 	PATH="$${PWD}/bin:$$( "$(GO.MACRO)" env GOPATH )/bin:$${PATH}"\
 	RACE='$(RACE)'\
-	REVISION="$(REVISION)"\
+	SIGN='$(SIGN)'\
 	VERBOSE="$(VERBOSE.MACRO)"\
 	VERSION="$(VERSION)"\
 
