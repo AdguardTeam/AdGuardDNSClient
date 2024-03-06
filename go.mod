@@ -1,11 +1,12 @@
 module github.com/AdguardTeam/AdGuardDNSClient
 
-go 1.21.7
+go 1.21.8
 
 require (
 	github.com/AdguardTeam/dnsproxy v0.65.2
 	github.com/AdguardTeam/golibs v0.20.1
 	github.com/c2h5oh/datasize v0.0.0-20231215233829-aa82cc1e6500
+	github.com/miekg/dns v1.1.58
 	github.com/stretchr/testify v1.8.4
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -20,7 +21,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/pprof v0.0.0-20240130152714-0ed6a68c8d9e // indirect
-	github.com/miekg/dns v1.1.58 // indirect
 	github.com/onsi/ginkgo/v2 v2.15.0 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
