@@ -4,13 +4,8 @@ import (
 	"fmt"
 	"net/netip"
 
-	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/errors"
-	"github.com/AdguardTeam/golibs/mapsutil"
-	"github.com/AdguardTeam/golibs/netutil"
-	"github.com/AdguardTeam/golibs/timeutil"
-	"github.com/c2h5oh/datasize"
 )
 
 // dnsConfig is the configuration for handling DNS.
@@ -19,7 +14,7 @@ type dnsConfig struct {
 	Cache *cacheConfig `yaml:"cache"`
 
 	// Server configures handling of incoming DNS requests.
-	Server *servingConfig `yaml:"server"`
+	Server *serverConfig `yaml:"server"`
 
 	// Bootstrap configures the resolving of upstream's hostnames.
 	Bootstrap *bootstrapConfig `yaml:"bootstrap"`
@@ -58,210 +53,37 @@ func (c *dnsConfig) validate() (err error) {
 	return errors.Join(errs...)
 }
 
-// cacheConfig is the configuration for the DNS results cache.
-type cacheConfig struct {
-	// Enabled specifies if the cache should be used.
-	Enabled bool `yaml:"enabled"`
-
-	// Size is the maximum size of the cache.
-	Size datasize.ByteSize `yaml:"size"`
-
-	// ClientSize is the maximum size of the cache per client.
-	ClientSize datasize.ByteSize `yaml:"client_size"`
-}
-
-// type check
-var _ validator = (*cacheConfig)(nil)
-
-// validate implements the [validator] interface for *cacheConfig.
-func (c *cacheConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "cache section: %w") }()
-
-	if c == nil {
-		return errNoValue
-	}
-
-	var errs []error
-
-	if c.Size <= 0 {
-		errs = append(errs, fmt.Errorf("got size %s: %w", c.Size, errMustBeNonNegative))
-	}
-
-	if c.ClientSize <= 0 {
-		errs = append(
-			errs,
-			fmt.Errorf("got client_size %s: %w", c.ClientSize, errMustBeNonNegative),
-		)
-	}
-
-	return errors.Join(errs...)
-}
-
-// servingConfig is the configuration for serving DNS requests.
-type servingConfig struct {
+// serverConfig is the configuration for serving DNS requests.
+type serverConfig struct {
 	// ListenAddresses is the addresses server listens for requests.
-	ListenAddresses []*serverConfig `yaml:"listen_addresses"`
+	ListenAddresses ipPortAddressConfigs `yaml:"listen_addresses"`
 }
 
 // type check
-var _ validator = (*servingConfig)(nil)
+var _ validator = (*serverConfig)(nil)
 
-// validate implements the [validator] interface for *servingConfig.
-func (c *servingConfig) validate() (err error) {
+// validate implements the [validator] interface for *serverConfig.
+func (c *serverConfig) validate() (err error) {
 	defer func() { err = errors.Annotate(err, "server section: %w") }()
 
 	switch {
 	case c == nil:
 		return errNoValue
-	case len(c.ListenAddresses) == 0:
-		return fmt.Errorf("listen_addresses: %w", errNoValue)
 	}
 
-	var errs []error
-
-	for i, addr := range c.ListenAddresses {
-		errs = append(errs, errors.Annotate(addr.validate(), "listen_addresses at index %d: %w", i))
+	err = c.ListenAddresses.validate()
+	if err != nil {
+		return fmt.Errorf("listen_addresses: %w", err)
 	}
 
-	return errors.Join(errs...)
+	return nil
 }
 
-// bootstrapConfig is the configuration for resolving upstream's hostnames.
-type bootstrapConfig struct {
-	// Servers is the list of DNS servers to use for resolving upstream's
-	// hostnames.
-	Servers []*serverConfig `yaml:"servers"`
-
-	// Timeout constrains the time for sending requests and receiving responses.
-	Timeout timeutil.Duration `yaml:"timeout"`
-}
-
-// type check
-var _ validator = (*bootstrapConfig)(nil)
-
-// validate implements the [validator] interface for *bootstrapConfig.
-func (c *bootstrapConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "bootstrap section: %w") }()
-
-	if c == nil {
-		return errNoValue
-	}
-
-	var errs []error
-
-	if c.Timeout.Duration <= 0 {
-		errs = append(errs, fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive))
-	}
-
-	for i, s := range c.Servers {
-		errs = append(errs, errors.Annotate(s.validate(), "servers at index %d: %w", i))
-	}
-
-	return errors.Join(errs...)
-}
-
-// fallbackConfig is the configuration for the fallback DNS upstream servers.
-type fallbackConfig struct {
-	// Servers is the list of DNS servers to use for fallback.
-	Servers []*serverConfig `yaml:"servers"`
-
-	// Timeout constrains the time for sending requests and receiving responses.
-	Timeout timeutil.Duration `yaml:"timeout"`
-}
-
-// type check
-var _ validator = (*fallbackConfig)(nil)
-
-// validate implements the [validator] interface for *fallbackConfig.
-func (c *fallbackConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "fallback section: %w") }()
-
-	if c == nil {
-		return errNoValue
-	}
-
-	var errs []error
-
-	if c.Timeout.Duration <= 0 {
-		errs = append(errs, fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive))
-	}
-
-	for i, s := range c.Servers {
-		errs = append(errs, errors.Annotate(s.validate(), "servers at index %d: %w", i))
-	}
-
-	return errors.Join(errs...)
-}
-
-// upstreamConfig is the configuration for the DNS upstream servers.
-type upstreamConfig struct {
-	// Groups contains all the grous of servers.
-	Groups upstreamGroupsConfig `yaml:"groups"`
-
-	// Timeout constrains the time for sending requests and receiving responses.
-	Timeout timeutil.Duration `yaml:"timeout"`
-}
-
-// type check
-var _ validator = (*upstreamConfig)(nil)
-
-// validate implements the [validator] interface for *upstreamConfig.
-func (c *upstreamConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "upstream section: %w") }()
-
-	if c == nil {
-		return errNoValue
-	}
-
-	if c.Timeout.Duration <= 0 {
-		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
-	}
-
-	return errors.Join(err, c.Groups.validate())
-}
-
-// upstreamGroupsConfig is the configuration for the set of groups of DNS
-// upstream servers.
-type upstreamGroupsConfig map[agdc.UpstreamGroupName]*upstreamGroupConfig
-
-// type check
-var _ validator = (upstreamGroupsConfig)(nil)
-
-// validate implements the [validator] interface for upstreamGroupsConfig.
-func (c upstreamGroupsConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "groups: %w") }()
-
-	if c == nil {
-		return errNoValue
-	} else if len(c) == 0 {
-		return errEmptyValue
-	}
-
-	var errs []error
-
-	if _, ok := c[agdc.UpstreamGroupNameDefault]; !ok {
-		errs = append(errs, fmt.Errorf("group %q must be present", agdc.UpstreamGroupNameDefault))
-	}
-
-	mapsutil.OrderedRange(c, func(name agdc.UpstreamGroupName, g *upstreamGroupConfig) (cont bool) {
-		err = g.validate()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("group %q: %w", name, err))
-		} else if name == agdc.UpstreamGroupNameDefault && g.Match != nil {
-			errs = append(errs, fmt.Errorf("group %q must not have any match criteria", name))
-		}
-
-		return true
-	})
-
-	return errors.Join(errs...)
-}
-
-// serverConfig is the object for configuring an entity having an address.
+// addressConfig is the object for configuring an entity having an address.
 //
 // TODO(e.burkov):  Think more about naming, since it collides with the actual
 // server section and doesn't really reflect the purpose of the object.
-type serverConfig struct {
+type addressConfig struct {
 	// Address is the address of the server.
 	//
 	// TODO(e.burkov):  Perhaps, this should be more strictly typed.
@@ -269,13 +91,10 @@ type serverConfig struct {
 }
 
 // type check
-var _ validator = (*serverConfig)(nil)
+var _ validator = (*addressConfig)(nil)
 
-// validate implements the [validator] interface for *serverConfig.
-//
-// TODO(e.burkov):  Consider validating the address according to the particular
-// configuration object's needs.
-func (c *serverConfig) validate() (err error) {
+// validate implements the [validator] interface for *addressConfig.
+func (c *addressConfig) validate() (err error) {
 	switch {
 	case c == nil:
 		return errNoValue
@@ -286,60 +105,55 @@ func (c *serverConfig) validate() (err error) {
 	}
 }
 
-// upstreamGroupConfig is the configuration for a group of DNS upstream servers.
-type upstreamGroupConfig struct {
-	serverConfig `yaml:",inline"`
-
-	// Match is the set of criteria for choosing this group.
-	Match []*upstreamMatchConfig `yaml:"match"`
-}
+// ipAddressConfigs is a slice of *addressConfig that should be IP addresses
+// with ports.
+type ipPortAddressConfigs []*addressConfig
 
 // type check
-var _ validator = (*upstreamGroupConfig)(nil)
+var _ validator = (ipPortAddressConfigs)(nil)
 
-// validate implements the [validator] interface for *upstreamGroupConfig.
-func (c *upstreamGroupConfig) validate() (err error) {
-	if c == nil {
+// validate implements the [validator] interface for ipAddressConfigs.
+func (c ipPortAddressConfigs) validate() (err error) {
+	if len(c) == 0 {
 		return errNoValue
 	}
 
-	errs := []error{
-		errors.Annotate(c.serverConfig.validate(), "server: %w"),
-	}
+	var errs []error
+	for i, addr := range c {
+		err = addr.validate()
+		if err == nil {
+			_, err = netip.ParseAddrPort(addr.Address)
+		}
 
-	for i, m := range c.Match {
-		errs = append(errs, errors.Annotate(m.validate(), "match at index %d: %w", i))
+		if err != nil {
+			errs = append(errs, fmt.Errorf("address at index %d: %w", i, err))
+		}
 	}
 
 	return errors.Join(errs...)
 }
 
-// upstreamMatchConfig is the configuration for a criteria for choosing an
-// upstream group.
-type upstreamMatchConfig struct {
-	// Client is the client's subnet to match.
-	Client netutil.Prefix `yaml:"client"`
-
-	// QuestionDomain is the domain name from request's question to match.
-	QuestionDomain string `yaml:"question_domain"`
-}
+// urlAddressCOnfigs is a slice of *addressConfig that should be URLs.
+type urlAddressConfigs []*addressConfig
 
 // type check
-var _ validator = (*upstreamMatchConfig)(nil)
+var _ validator = (urlAddressConfigs)(nil)
 
-// validate implements the [validator] interface for *upstreamMatchConfig.
-func (c *upstreamMatchConfig) validate() (err error) {
-	if c == nil {
+// validate implements the [validator] interface for urlAddressConfigs.
+func (c urlAddressConfigs) validate() (err error) {
+	if len(c) == 0 {
 		return errNoValue
-	} else if *c == (upstreamMatchConfig{}) {
-		return errEmptyValue
 	}
 
-	if c.QuestionDomain != "" {
-		return errors.Annotate(netutil.ValidateDomainName(c.QuestionDomain), "question_domain: %w")
+	var errs []error
+	for i, addr := range c {
+		err = addr.validate()
+		if err != nil {
+			errs = append(errs, fmt.Errorf("address at index %d: %w", i, err))
+		}
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // toInternal converts the DNS configuration to the internal representation.
@@ -371,20 +185,13 @@ func (c *dnsConfig) toInternal() (conf *dnssvc.Config, err error) {
 		falls = append(falls, s.Address)
 	}
 
-	// TODO(e.burkov):  Add other upstreams and fallbacks.
-
 	return &dnssvc.Config{
 		ListenAddrs: listenAddrs,
 		Bootstrap: &dnssvc.BootstrapConfig{
 			Addresses: bootstraps,
 			Timeout:   c.Bootstrap.Timeout.Duration,
 		},
-		Upstreams: &dnssvc.UpstreamConfig{
-			Addresses: []string{
-				c.Upstream.Groups[agdc.UpstreamGroupNameDefault].Address,
-			},
-			Timeout: c.Upstream.Timeout.Duration,
-		},
+		Upstreams: c.Upstream.toInternal(),
 		Fallbacks: &dnssvc.FallbackConfig{
 			Addresses: falls,
 			Timeout:   c.Fallback.Timeout.Duration,

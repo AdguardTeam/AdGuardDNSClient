@@ -12,9 +12,9 @@ const (
 	// errMustBePositive signals that a numeric value must be greater than zero.
 	errMustBePositive errors.Error = "must be positive"
 
-	// errMustBeNonNegative signals that a numeric value must be greater than or
-	// equal to zero.
-	errMustBeNonNegative errors.Error = "must be non-negative"
+	// errMustHaveNoMatch signals that an upstream group must have no match
+	// criteria.
+	errMustHaveNoMatch errors.Error = "must have no match criteria"
 )
 
 // check is a simple error-checking helper.  It must only be used within Main.

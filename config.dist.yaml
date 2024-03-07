@@ -29,6 +29,8 @@ dns:
         groups:
             'default':
                 address: 'https://unfiltered.adguard-dns.com/dns-query'
+            'private':
+                address: '192.168.12.34'
             'office':
                 address: '192.168.12.34'
                 # Matches "www.mycompany.local", "www.jira.mycompany.local",

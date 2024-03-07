@@ -26,7 +26,9 @@ const logFormat = slogutil.FormatAdGuardLegacy
 func Main() {
 	conf, err := parseConfig(defaultConfigPath)
 	check(err)
-	check(conf.validate())
+
+	err = conf.validate()
+	check(err)
 
 	// Logger
 
@@ -49,13 +51,12 @@ func Main() {
 	ctx := context.Background()
 
 	// TODO(a.garipov): Copy logs configuration from the WIP abt. slog.
-	buildVersion, revision, branch := version.Version(), version.Revision(), version.Branch()
 	l.InfoContext(
 		ctx,
 		"AdGuardDNSClient starting",
-		"version", buildVersion,
-		"revision", revision,
-		"branch", branch,
+		"version", version.Version(),
+		"revision", version.Revision(),
+		"branch", version.Branch(),
 		"commit_time", version.CommitTime(),
 		"race", version.RaceEnabled,
 		"verbose", conf.Log.Verbose,
@@ -70,7 +71,8 @@ func Main() {
 	dnsSvc, err := dnssvc.New(dnsConf)
 	check(err)
 
-	check(dnsSvc.Start(ctx))
+	err = dnsSvc.Start(ctx)
+	check(err)
 	l.DebugContext(ctx, "dns service started")
 
 	sigCh := make(chan os.Signal, 1)

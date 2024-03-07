@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/dnsproxy/proxy"
 	"github.com/AdguardTeam/golibs/netutil"
@@ -63,21 +64,44 @@ func startLocalhostUpstream(t *testing.T, h dns.Handler) (addr *url.URL) {
 }
 
 func TestDNSService(t *testing.T) {
-	req := (&dns.Msg{}).SetQuestion("example.com.", dns.TypeA)
-	resp := (&dns.Msg{}).SetReply(req)
-	upsHandler := func(w dns.ResponseWriter, _ *dns.Msg) {
-		require.NoError(testutil.PanicT{}, w.WriteMsg(resp))
+	t.Parallel()
+
+	req1 := (&dns.Msg{}).SetQuestion("example.com.", dns.TypeA)
+	resp1 := (&dns.Msg{}).SetReply(req1)
+
+	req2 := (&dns.Msg{}).SetQuestion("test.example.com.", dns.TypeA)
+	resp2 := (&dns.Msg{}).SetReply(req2)
+
+	upsHdlr1 := func(w dns.ResponseWriter, req *dns.Msg) {
+		require.NoError(testutil.PanicT{}, w.WriteMsg(resp1))
 	}
 
-	upsURL := startLocalhostUpstream(t, dns.HandlerFunc(upsHandler))
+	upsHdlr2 := func(w dns.ResponseWriter, req *dns.Msg) {
+		require.NoError(testutil.PanicT{}, w.WriteMsg(resp2))
+	}
+
+	ups1URL := startLocalhostUpstream(t, dns.HandlerFunc(upsHdlr1)).String()
+	ups2URL := startLocalhostUpstream(t, dns.HandlerFunc(upsHdlr2)).String()
 
 	svc, err := dnssvc.New(&dnssvc.Config{
 		Bootstrap: &dnssvc.BootstrapConfig{},
 		Upstreams: &dnssvc.UpstreamConfig{
-			Addresses: []string{upsURL.String()},
+			Groups: []*dnssvc.UpstreamGroupConfig{{
+				Name:    agdc.UpstreamGroupNameDefault,
+				Address: ups1URL,
+				Match:   nil,
+			}, {
+				Name:    "test_group_name",
+				Address: ups2URL,
+				Match: []dnssvc.MatchCriteria{{
+					QuestionDomain: "test.example.com",
+				}},
+			}},
+			Timeout: testTimeout,
 		},
 		Fallbacks: &dnssvc.FallbackConfig{
-			Addresses: []string{upsURL.String()},
+			Addresses: []string{ups1URL},
+			Timeout:   testTimeout,
 		},
 		ListenAddrs: []netip.AddrPort{
 			netip.MustParseAddrPort("127.0.0.1:0"),
@@ -94,10 +118,32 @@ func TestDNSService(t *testing.T) {
 		Net:     string(proxy.ProtoTCP),
 		Timeout: testTimeout,
 	}
-	tcpAddr := svc.Addr(proxy.ProtoTCP)
+	tcpAddr := svc.Addr(proxy.ProtoTCP).String()
 
-	received, _, err := cli.Exchange(req, tcpAddr.String())
-	require.NoError(t, err)
+	testCases := []struct {
+		name       string
+		req        *dns.Msg
+		wantResp   *dns.Msg
+		wantErrMsg string
+	}{{
+		name:     "success",
+		req:      req1,
+		wantResp: resp1,
+	}, {
+		name:     "domain_match",
+		req:      req2,
+		wantResp: resp2,
+	}}
 
-	assert.Equal(t, resp, received)
+	for _, tc := range testCases {
+		tc := tc
+
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			received, _, excErr := cli.Exchange(tc.req, tcpAddr)
+			testutil.AssertErrorMsg(t, tc.wantErrMsg, excErr)
+			assert.Equal(t, tc.wantResp, received)
+		})
+	}
 }

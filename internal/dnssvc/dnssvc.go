@@ -7,8 +7,6 @@ import (
 	"io"
 	"net"
 	"net/netip"
-	"slices"
-	"time"
 
 	"github.com/AdguardTeam/dnsproxy/proxy"
 	"github.com/AdguardTeam/dnsproxy/upstream"
@@ -36,32 +34,33 @@ func New(conf *Config) (svc *DNSService, err error) {
 		tcpListenAddrs = append(tcpListenAddrs, net.TCPAddrFromAddrPort(addr))
 	}
 
-	boot, bootUps, err := newBootstrap(conf.Bootstrap)
+	boot, bootUps, err := conf.Bootstrap.toProxyResolvers()
 	if err != nil {
 		return nil, fmt.Errorf("creating bootstrap: %w", err)
 	}
 
-	ups, err := newUpstreams(conf.Upstreams.Addresses, conf.Upstreams.Timeout, boot)
+	ups, err := conf.Upstreams.toProxyUpstreamConfig(&upstream.Options{
+		Timeout:   conf.Upstreams.Timeout,
+		Bootstrap: boot,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("creating upstreams: %w", err)
 	}
 
-	fall, err := newUpstreams(conf.Fallbacks.Addresses, conf.Fallbacks.Timeout, boot)
+	fallbacks, err := proxy.ParseUpstreamsConfig(conf.Fallbacks.Addresses, &upstream.Options{
+		Timeout:   conf.Fallbacks.Timeout,
+		Bootstrap: boot,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("creating fallbacks: %w", err)
 	}
 
 	prx := &proxy.Proxy{
 		Config: proxy.Config{
-			UDPListenAddr: udpListenAddrs,
-			TCPListenAddr: tcpListenAddrs,
-			// TODO(e.burkov):  Create properly.
-			UpstreamConfig: &proxy.UpstreamConfig{
-				Upstreams: ups,
-			},
-			Fallbacks: &proxy.UpstreamConfig{
-				Upstreams: fall,
-			},
+			UDPListenAddr:  udpListenAddrs,
+			TCPListenAddr:  tcpListenAddrs,
+			UpstreamConfig: ups,
+			Fallbacks:      fallbacks,
 			// TODO(e.burkov):  Consider making configurable.
 			TrustedProxies: netutil.SliceSubnetSet{
 				netip.MustParsePrefix("0.0.0.0/0"),
@@ -70,6 +69,7 @@ func New(conf *Config) (svc *DNSService, err error) {
 		},
 	}
 
+	// TODO(e.burkov):  Remove after update.
 	err = prx.Init()
 	if err != nil {
 		return nil, fmt.Errorf("initializing proxy: %w", err)
@@ -91,11 +91,15 @@ func (s *DNSService) Start(_ context.Context) (err error) {
 
 // Shutdown implements the [service.Interface] interface for *DNSService.
 func (s *DNSService) Shutdown(ctx context.Context) (err error) {
-	errs := s.closeBootstraps()
+	var errs []error
+
 	err = s.proxy.Stop()
 	if err != nil {
 		errs = append(errs, fmt.Errorf("stopping proxy: %w", err))
 	}
+
+	// Close bootstraps after upstreams to ensure those aren't used anymore.
+	errs = append(errs, s.closeBootstraps()...)
 
 	return errors.Join(errs...)
 }
@@ -110,59 +114,4 @@ func (s *DNSService) closeBootstraps() (errs []error) {
 	}
 
 	return errs
-}
-
-// newBootstrap creates a new bootstrap resolver and a list of upstreams to
-// close on shutdown.
-func newBootstrap(conf *BootstrapConfig) (boot upstream.Resolver, closers []io.Closer, err error) {
-	opts := &upstream.Options{
-		Timeout: conf.Timeout,
-	}
-
-	resolvers := make(upstream.ConsequentResolver, 0, len(conf.Addresses))
-	closers = make([]io.Closer, 0, len(conf.Addresses))
-	var errs []error
-
-	for i, addr := range conf.Addresses {
-		var b *upstream.UpstreamResolver
-		b, err = upstream.NewUpstreamResolver(addr.String(), opts)
-		if err != nil {
-			err = fmt.Errorf("creating bootstrap at index %d: %w", i, err)
-			errs = append(errs, err)
-
-			continue
-		}
-
-		resolvers = append(resolvers, upstream.NewCachingResolver(b))
-		closers = append(closers, b.Upstream)
-	}
-
-	return slices.Clip(resolvers), slices.Clip(closers), errors.Join(errs...)
-}
-
-// newUpstreams creates a slice of upstreams from the given configuration.
-func newUpstreams(
-	addrs []string,
-	timeout time.Duration,
-	boot upstream.Resolver,
-) (ups []upstream.Upstream, err error) {
-	opts := &upstream.Options{
-		Timeout:   timeout,
-		Bootstrap: boot,
-	}
-
-	var errs []error
-	for i, addr := range addrs {
-		var u upstream.Upstream
-		u, err = upstream.AddressToUpstream(addr, opts)
-		if err != nil {
-			errs = append(errs, fmt.Errorf("upstream at index %d: %w", i, err))
-
-			continue
-		}
-
-		ups = append(ups, u)
-	}
-
-	return ups, errors.Join(errs...)
 }

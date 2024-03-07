@@ -58,6 +58,6 @@ Also, there is a sample configuration file `config.dist.yaml`.
 
 [`doc/configuration.md`]: doc/configuration.md
 
-<!-- TODO(e.burkov): Add sections about environment. -->
+<!-- TODO(e.burkov): Add doc about environment. -->
 
 <!-- TODO(e.burkov): Add GitHub issue templates. -->

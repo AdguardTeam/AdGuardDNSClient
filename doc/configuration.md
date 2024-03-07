@@ -128,9 +128,10 @@ following properties:
           - client: '1.2.3.4'
         ```
 
-    Note, that `groups` should contain at least a single entry named `default`
-    without `match` property.  It will be used when there are no matches among
-    other groups.
+    Note, that `groups` should contain an entry named `default`, and an entry
+    named `private`, both should have no `match` property.  The `default` group
+    will be used when there are no matches among other groups.  The `private`
+    group will be used to resolve the PTR requests for the private IP addresses.
 
  *  <a href="#dns-upstream-timeout" id="dns-upstream-timeout" name="dns-upstream-timeout">`timeout`</a>:
     The timeout for upstream DNS requests.

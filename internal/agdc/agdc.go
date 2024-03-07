@@ -3,10 +3,18 @@
 package agdc
 
 // UpstreamGroupName is a type for the name of an upstream group.
+//
+// TODO(e.burkov):  Add validation method, consider using the rules for
+// prometheus labels.
 type UpstreamGroupName string
 
-// UpstreamGroupNameDefault is the reserved name for an upstream group that
-// matches all requests and must appear in the configuration.
-const UpstreamGroupNameDefault UpstreamGroupName = "default"
+const (
+	// UpstreamGroupNameDefault is the reserved name for an upstream group that
+	// matches all requests and must appear in the configuration.
+	UpstreamGroupNameDefault UpstreamGroupName = "default"
 
-// TODO(e.burkov):  We may need one more special group for local PTR requests.
+	// UpstreamGroupNamePrivate is the reserved name for an upstream group that
+	// handles the PTR requests for private IP addresses and must appear in the
+	// configuration.
+	UpstreamGroupNamePrivate UpstreamGroupName = "private"
+)
