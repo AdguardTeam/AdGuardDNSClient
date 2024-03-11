@@ -55,24 +55,19 @@ func New(conf *Config) (svc *DNSService, err error) {
 		return nil, fmt.Errorf("creating fallbacks: %w", err)
 	}
 
-	prx := &proxy.Proxy{
-		Config: proxy.Config{
-			UDPListenAddr:  udpListenAddrs,
-			TCPListenAddr:  tcpListenAddrs,
-			UpstreamConfig: ups,
-			Fallbacks:      fallbacks,
-			// TODO(e.burkov):  Consider making configurable.
-			TrustedProxies: netutil.SliceSubnetSet{
-				netip.MustParsePrefix("0.0.0.0/0"),
-				netip.MustParsePrefix("::/0"),
-			},
+	prx, err := proxy.New(&proxy.Config{
+		UDPListenAddr:  udpListenAddrs,
+		TCPListenAddr:  tcpListenAddrs,
+		UpstreamConfig: ups,
+		Fallbacks:      fallbacks,
+		// TODO(e.burkov):  Consider making configurable.
+		TrustedProxies: netutil.SliceSubnetSet{
+			netip.MustParsePrefix("0.0.0.0/0"),
+			netip.MustParsePrefix("::/0"),
 		},
-	}
-
-	// TODO(e.burkov):  Remove after update.
-	err = prx.Init()
+	})
 	if err != nil {
-		return nil, fmt.Errorf("initializing proxy: %w", err)
+		return nil, fmt.Errorf("creating proxy: %w", err)
 	}
 
 	return &DNSService{
@@ -85,15 +80,15 @@ func New(conf *Config) (svc *DNSService, err error) {
 var _ service.Interface = (*DNSService)(nil)
 
 // Start implements the [service.Interface] interface for *DNSService.
-func (s *DNSService) Start(_ context.Context) (err error) {
-	return s.proxy.Start()
+func (s *DNSService) Start(ctx context.Context) (err error) {
+	return s.proxy.Start(ctx)
 }
 
 // Shutdown implements the [service.Interface] interface for *DNSService.
 func (s *DNSService) Shutdown(ctx context.Context) (err error) {
 	var errs []error
 
-	err = s.proxy.Stop()
+	err = s.proxy.Shutdown(ctx)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("stopping proxy: %w", err))
 	}
