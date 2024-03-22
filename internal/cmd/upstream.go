@@ -20,24 +20,8 @@ type upstreamConfig struct {
 	Timeout timeutil.Duration `yaml:"timeout"`
 }
 
-// type check
-var _ validator = (*upstreamConfig)(nil)
-
-// validate implements the [validator] interface for *upstreamConfig.
-func (c *upstreamConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "upstream section: %w") }()
-
-	if c == nil {
-		return errNoValue
-	}
-
-	if c.Timeout.Duration <= 0 {
-		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
-	}
-
-	return errors.Join(err, c.Groups.validate())
-}
-
+// toInternal converts the configuration to a *dnssvc.UpstreamConfig.  c must be
+// valid.
 func (c *upstreamConfig) toInternal() (conf *dnssvc.UpstreamConfig) {
 	conf = &dnssvc.UpstreamConfig{
 		Timeout: c.Timeout.Duration,
@@ -64,6 +48,31 @@ func (c *upstreamConfig) toInternal() (conf *dnssvc.UpstreamConfig) {
 	return conf
 }
 
+// type check
+var _ validator = (*upstreamConfig)(nil)
+
+// validate implements the [validator] interface for *upstreamConfig.
+func (c *upstreamConfig) validate() (err error) {
+	defer func() { err = errors.Annotate(err, "upstream: %w") }()
+
+	if c == nil {
+		return errNoValue
+	}
+
+	var errs []error
+	if c.Timeout.Duration <= 0 {
+		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
+
+		errs = append(errs, err)
+	}
+
+	if err = c.Groups.validate(); err != nil {
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
 // upstreamGroupsConfig is the configuration for the set of groups of DNS
 // upstream servers.
 type upstreamGroupsConfig map[agdc.UpstreamGroupName]*upstreamGroupConfig
@@ -81,18 +90,36 @@ func (c upstreamGroupsConfig) validate() (err error) {
 		return errEmptyValue
 	}
 
-	var errs []error
+	errs := c.validateRequiredGroups()
+
+	errs = append(errs, c.validateGroups()...)
+
+	return errors.Join(errs...)
+}
+
+// validateRequiredGroups returns errors of validating the required groups
+// within c.
+func (c upstreamGroupsConfig) validateRequiredGroups() (errs []error) {
 	for _, required := range []agdc.UpstreamGroupName{
 		agdc.UpstreamGroupNameDefault,
-		agdc.UpstreamGroupNamePrivate,
+		// TODO(e.burkov):  Add UpstreamGroupNamePrivate.
 	} {
-		if _, ok := c[required]; !ok {
+		if g, ok := c[required]; !ok {
 			errs = append(errs, fmt.Errorf("group %q must be specified", required))
+		} else if len(g.Match) > 0 {
+			errs = append(errs, fmt.Errorf("group %q: %w", required, errMustHaveNoMatch))
 		}
 	}
 
+	return errs
+}
+
+// validateGroups returns errors of validating the groups within c.
+//
+// TODO(e.burkov):  Skip required groups and require matches.
+func (c upstreamGroupsConfig) validateGroups() (errs []error) {
 	mapsutil.OrderedRange(c, func(name agdc.UpstreamGroupName, g *upstreamGroupConfig) (cont bool) {
-		err = g.validate(name)
+		err := g.validate()
 		if err != nil {
 			errs = append(errs, fmt.Errorf("group %q: %w", name, err))
 		}
@@ -100,43 +127,38 @@ func (c upstreamGroupsConfig) validate() (err error) {
 		return true
 	})
 
-	return errors.Join(errs...)
+	return errs
 }
 
 // upstreamGroupConfig is the configuration for a group of DNS upstream servers.
 type upstreamGroupConfig struct {
-	addressConfig `yaml:",inline"`
+	// Address is the URL of the upstream server for this group.
+	Address string `yaml:"address"`
 
 	// Match is the set of criteria for choosing this group.
 	Match []*upstreamMatchConfig `yaml:"match"`
 }
 
-// validate implements the [validator] interface for *upstreamGroupConfig.
-func (c *upstreamGroupConfig) validate(name agdc.UpstreamGroupName) (err error) {
+// validate returns an error if c is not valid.  It doesn't include its own name
+// into an error to be wrapped with different group names, and therefore
+// violates the [validator.validate] contract.
+func (c *upstreamGroupConfig) validate() (err error) {
 	if c == nil {
 		return errNoValue
 	}
 
 	var errs []error
 
-	err = c.addressConfig.validate()
-	if err != nil {
-		errs = append(errs, fmt.Errorf("server: %w", err))
+	if c.Address == "" {
+		errs = append(errs, fmt.Errorf("address: %w", errNoValue))
 	}
 
-	switch name {
-	case
-		agdc.UpstreamGroupNameDefault,
-		agdc.UpstreamGroupNamePrivate:
-		if len(c.Match) > 0 {
-			errs = append(errs, errMustHaveNoMatch)
-		}
-	default:
-		for i, m := range c.Match {
-			err = m.validate()
-			if err != nil {
-				errs = append(errs, fmt.Errorf("match at index %d: %w", i, err))
-			}
+	for i, m := range c.Match {
+		err = m.validate()
+		if err != nil {
+			err = fmt.Errorf("match: at index %d: %w", i, err)
+
+			errs = append(errs, err)
 		}
 	}
 
@@ -147,18 +169,15 @@ func (c *upstreamGroupConfig) validate(name agdc.UpstreamGroupName) (err error) 
 // upstream group.
 type upstreamMatchConfig struct {
 	// Client is the client's subnet to match.
-	//
-	// TODO(e.burkov):  Use.
 	Client netutil.Prefix `yaml:"client"`
 
 	// QuestionDomain is the domain name from request's question to match.
 	QuestionDomain string `yaml:"question_domain"`
 }
 
-// type check
-var _ validator = (*upstreamMatchConfig)(nil)
-
-// validate implements the [validator] interface for *upstreamMatchConfig.
+// validate returns an error if c is not valid.  It doesn't include its own name
+// into an error to be used in different configuration sections, and therefore
+// violates the [validator.validate] contract.
 func (c *upstreamMatchConfig) validate() (err error) {
 	if c == nil {
 		return errNoValue
@@ -166,11 +185,13 @@ func (c *upstreamMatchConfig) validate() (err error) {
 		return errEmptyValue
 	}
 
-	if c.QuestionDomain != "" {
-		err = netutil.ValidateDomainName(c.QuestionDomain)
-		if err != nil {
-			return fmt.Errorf("question_domain: %w", err)
-		}
+	if c.QuestionDomain == "" {
+		return nil
+	}
+
+	err = netutil.ValidateDomainName(c.QuestionDomain)
+	if err != nil {
+		return fmt.Errorf("question_domain: %w", err)
 	}
 
 	return nil

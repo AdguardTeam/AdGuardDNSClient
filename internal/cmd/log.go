@@ -16,7 +16,7 @@ var _ validator = (*logConfig)(nil)
 
 // validate implements the [validator] interface for *logConfig.
 func (c *logConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "log section: %w") }()
+	defer func() { err = errors.Annotate(err, "log: %w") }()
 
 	if c == nil {
 		return errNoValue

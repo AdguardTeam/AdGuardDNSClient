@@ -8,9 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// currentSchemaVersion is the current version of the configuration structure.
-const currentSchemaVersion = 1
-
 // configuration is the structure of YAML configuration for AdGuardDNSClient.
 //
 // TODO(e.burkov):  Test it out.
@@ -26,7 +23,7 @@ type configuration struct {
 
 	// SchemaVersion is the current version of this structure.  This is bumped
 	// each time the configuration changes breaking backwards compatibility.
-	SchemaVersion int `yaml:"schema_version"`
+	SchemaVersion schemaVersion `yaml:"schema_version"`
 }
 
 // defaultConfigPath is the path to the configuration file.
@@ -55,42 +52,55 @@ func parseConfig(path string) (conf *configuration, err error) {
 	return conf, nil
 }
 
-// validator is a configuration object that is able to validate itself.
-type validator interface {
-	// validate should return an error if the object considers itself invalid.
-	validate() (err error)
-}
-
 // type check
 var _ validator = (*configuration)(nil)
 
 // validate implements the [validator] interface for *configuration.
 func (c *configuration) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "validating configuration: %w") }()
+	defer func() { err = errors.Annotate(err, "configuration: %w") }()
 
-	switch {
-	case c == nil:
+	if c == nil {
 		return errNoValue
-	case c.SchemaVersion > currentSchemaVersion:
-		return fmt.Errorf(
-			"got schema version %d, most recent is %d",
-			c.SchemaVersion,
-			currentSchemaVersion,
-		)
-	case c.SchemaVersion <= 0:
-		return fmt.Errorf("got schema version %d: %w", c.SchemaVersion, errMustBePositive)
 	}
 
-	validators := []validator{
-		c.DNS,
-		c.Log,
-		c.Debug,
+	err = c.SchemaVersion.validate()
+	if err != nil {
+		// Don't validate the rest of the configuration of invalid schema
+		// version.
+		return err
 	}
 
 	var errs []error
-	for _, v := range validators {
+	for _, v := range []validator{
+		c.DNS,
+		c.Log,
+		c.Debug,
+	} {
 		errs = append(errs, v.validate())
 	}
 
 	return errors.Join(errs...)
+}
+
+// schemaVersion is the type for the configuration structure revision.
+type schemaVersion uint
+
+// currentSchemaVersion is the current version of the configuration structure.
+const currentSchemaVersion schemaVersion = 1
+
+// type check
+var _ validator = (schemaVersion)(currentSchemaVersion)
+
+// validate implements the [validator] interface for schemaVersion.
+func (v schemaVersion) validate() (err error) {
+	defer func() { err = errors.Annotate(err, "schema_version: %w", v) }()
+
+	switch {
+	case v == 0:
+		return errMustBePositive
+	case v > currentSchemaVersion:
+		return fmt.Errorf("got %d, most recent is %d", currentSchemaVersion, v)
+	default:
+		return nil
+	}
 }

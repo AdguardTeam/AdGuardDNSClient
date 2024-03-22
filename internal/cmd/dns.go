@@ -31,7 +31,7 @@ var _ validator = (*dnsConfig)(nil)
 
 // validate implements the [validator] interface for *dnsConfig.
 func (c *dnsConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "dns section: %w") }()
+	defer func() { err = errors.Annotate(err, "dns: %w") }()
 
 	if c == nil {
 		return errNoValue
@@ -53,148 +53,70 @@ func (c *dnsConfig) validate() (err error) {
 	return errors.Join(errs...)
 }
 
-// serverConfig is the configuration for serving DNS requests.
-type serverConfig struct {
-	// ListenAddresses is the addresses server listens for requests.
-	ListenAddresses ipPortAddressConfigs `yaml:"listen_addresses"`
+// toInternal converts the DNS configuration to the internal representation.  c
+// must be valid.
+func (c *dnsConfig) toInternal() (conf *dnssvc.Config) {
+	return &dnssvc.Config{
+		Bootstrap:   c.Bootstrap.toInternal(),
+		Upstreams:   c.Upstream.toInternal(),
+		Fallbacks:   c.Fallback.toInternal(),
+		ListenAddrs: c.Server.ListenAddresses.toInternal(),
+	}
 }
 
-// type check
-var _ validator = (*serverConfig)(nil)
-
-// validate implements the [validator] interface for *serverConfig.
-func (c *serverConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "server section: %w") }()
-
-	switch {
-	case c == nil:
-		return errNoValue
-	}
-
-	err = c.ListenAddresses.validate()
-	if err != nil {
-		return fmt.Errorf("listen_addresses: %w", err)
-	}
-
-	return nil
-}
-
-// addressConfig is the object for configuring an entity having an address.
-//
-// TODO(e.burkov):  Think more about naming, since it collides with the actual
-// server section and doesn't really reflect the purpose of the object.
-type addressConfig struct {
+// ipPortConfig is the object for configuring an entity having an IP address
+// with a port.
+type ipPortConfig struct {
 	// Address is the address of the server.
-	//
-	// TODO(e.burkov):  Perhaps, this should be more strictly typed.
-	Address string `yaml:"address"`
+	Address netip.AddrPort `yaml:"address"`
 }
 
-// type check
-var _ validator = (*addressConfig)(nil)
-
-// validate implements the [validator] interface for *addressConfig.
-func (c *addressConfig) validate() (err error) {
+// validate returns an error if c is not valid.  It doesn't include its own name
+// into an error to be used in different configuration sections, and therefore
+// violates the [validator.validate] contract.
+func (c *ipPortConfig) validate() (err error) {
 	switch {
 	case c == nil:
 		return errNoValue
-	case c.Address == "":
-		return errEmptyValue
+	case c.Address == netip.AddrPort{}:
+		return fmt.Errorf("address: %w", errEmptyValue)
 	default:
 		return nil
 	}
 }
 
-// ipAddressConfigs is a slice of *addressConfig that should be IP addresses
-// with ports.
-type ipPortAddressConfigs []*addressConfig
+// ipPortConfigs is a slice of *ipPortConfig for validation and conversion
+// convenience.
+type ipPortConfigs []*ipPortConfig
 
-// type check
-var _ validator = (ipPortAddressConfigs)(nil)
+// toInternal converts the addresses to the internal representation.  c must be
+// valid.
+func (c ipPortConfigs) toInternal() (addrs []netip.AddrPort) {
+	addrs = make([]netip.AddrPort, 0, len(c))
+	for _, addr := range c {
+		addrs = append(addrs, addr.Address)
+	}
 
-// validate implements the [validator] interface for ipAddressConfigs.
-func (c ipPortAddressConfigs) validate() (err error) {
+	return addrs
+}
+
+// validate returns an error if c is not valid.  It doesn't include its own name
+// into an error to be used in different configuration sections, and therefore
+// violates the [validator.validate] contract.
+func (c ipPortConfigs) validate() (res error) {
 	if len(c) == 0 {
 		return errNoValue
 	}
 
 	var errs []error
 	for i, addr := range c {
-		err = addr.validate()
-		if err == nil {
-			_, err = netip.ParseAddrPort(addr.Address)
-		}
-
+		err := addr.validate()
 		if err != nil {
-			errs = append(errs, fmt.Errorf("address at index %d: %w", i, err))
+			err = fmt.Errorf("at index %d: %w", i, err)
+
+			errs = append(errs, err)
 		}
 	}
 
 	return errors.Join(errs...)
-}
-
-// urlAddressCOnfigs is a slice of *addressConfig that should be URLs.
-type urlAddressConfigs []*addressConfig
-
-// type check
-var _ validator = (urlAddressConfigs)(nil)
-
-// validate implements the [validator] interface for urlAddressConfigs.
-func (c urlAddressConfigs) validate() (err error) {
-	if len(c) == 0 {
-		return errNoValue
-	}
-
-	var errs []error
-	for i, addr := range c {
-		err = addr.validate()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("address at index %d: %w", i, err))
-		}
-	}
-
-	return errors.Join(errs...)
-}
-
-// toInternal converts the DNS configuration to the internal representation.
-func (c *dnsConfig) toInternal() (conf *dnssvc.Config, err error) {
-	listenAddrs := make([]netip.AddrPort, 0, len(c.Server.ListenAddresses))
-	for i, addr := range c.Server.ListenAddresses {
-		var addrPort netip.AddrPort
-		addrPort, err = netip.ParseAddrPort(addr.Address)
-		if err != nil {
-			return nil, fmt.Errorf("listen address at index %d: %w", i, err)
-		}
-
-		listenAddrs = append(listenAddrs, addrPort)
-	}
-
-	bootstraps := make([]netip.AddrPort, 0, len(c.Bootstrap.Servers))
-	for i, s := range c.Bootstrap.Servers {
-		var addrPort netip.AddrPort
-		addrPort, err = netip.ParseAddrPort(s.Address)
-		if err != nil {
-			return nil, fmt.Errorf("bootstrap server at index %d: %w", i, err)
-		}
-
-		bootstraps = append(bootstraps, addrPort)
-	}
-
-	falls := make([]string, 0, len(c.Fallback.Servers))
-	for _, s := range c.Fallback.Servers {
-		falls = append(falls, s.Address)
-	}
-
-	return &dnssvc.Config{
-		ListenAddrs: listenAddrs,
-		Bootstrap: &dnssvc.BootstrapConfig{
-			Addresses: bootstraps,
-			Timeout:   c.Bootstrap.Timeout.Duration,
-		},
-		Upstreams: c.Upstream.toInternal(),
-		Fallbacks: &dnssvc.FallbackConfig{
-			Addresses: falls,
-			Timeout:   c.Fallback.Timeout.Duration,
-		},
-	}, nil
 }

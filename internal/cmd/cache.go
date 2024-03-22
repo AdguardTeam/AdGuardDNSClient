@@ -24,7 +24,7 @@ var _ validator = (*cacheConfig)(nil)
 
 // validate implements the [validator] interface for *cacheConfig.
 func (c *cacheConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "cache section: %w") }()
+	defer func() { err = errors.Annotate(err, "cache: %w") }()
 
 	if c == nil {
 		return errNoValue

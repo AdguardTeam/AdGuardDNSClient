@@ -13,8 +13,5 @@ const (
 	// matches all requests and must appear in the configuration.
 	UpstreamGroupNameDefault UpstreamGroupName = "default"
 
-	// UpstreamGroupNamePrivate is the reserved name for an upstream group that
-	// handles the PTR requests for private IP addresses and must appear in the
-	// configuration.
-	UpstreamGroupNamePrivate UpstreamGroupName = "private"
+	// TODO(e.burkov):  Add UpstreamGroupNamePrivate.
 )

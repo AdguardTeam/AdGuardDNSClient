@@ -44,10 +44,6 @@ func Main() {
 		log.SetLevel(log.DEBUG)
 	}
 
-	// Signal handler
-	//
-	// TODO(e.burkov):  Add when it will support Windows.
-
 	ctx := context.Background()
 
 	// TODO(a.garipov): Copy logs configuration from the WIP abt. slog.
@@ -64,16 +60,16 @@ func Main() {
 
 	// DNS service
 
-	dnsConf, err := conf.DNS.toInternal()
-	check(err)
-
-	// TODO(e.burkov):  Use proxy with request handler.
-	dnsSvc, err := dnssvc.New(dnsConf)
+	dnsSvc, err := dnssvc.New(conf.DNS.toInternal())
 	check(err)
 
 	err = dnsSvc.Start(ctx)
 	check(err)
 	l.DebugContext(ctx, "dns service started")
+
+	// Signal handler
+	//
+	// TODO(e.burkov):  Add when it will support Windows.
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, os.Interrupt)

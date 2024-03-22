@@ -13,9 +13,9 @@ type debugConfig struct {
 // type check
 var _ validator = (*debugConfig)(nil)
 
-// validate implements the [validator] interface for *pprofConfig.
+// validate implements the [validator] interface for *debugConfig.
 func (c *debugConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "debug section: %w") }()
+	defer func() { err = errors.Annotate(err, "debug: %w") }()
 
 	if c == nil {
 		return errNoValue
@@ -38,7 +38,7 @@ var _ validator = (*pprofConfig)(nil)
 
 // validate implements the [validator] interface for *pprofConfig.
 func (c *pprofConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "pprof section: %w") }()
+	defer func() { err = errors.Annotate(err, "pprof: %w") }()
 
 	if c == nil {
 		return errNoValue

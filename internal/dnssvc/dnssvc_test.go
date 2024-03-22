@@ -24,15 +24,16 @@ const testTimeout = 1 * time.Second
 
 // startLocalhostUpstream is a test helper that starts a DNS server on
 // localhost.
+//
+// TODO(e.burkov):  Move into agdctest or even to golibs.
 func startLocalhostUpstream(t *testing.T, h dns.Handler) (addr *url.URL) {
 	t.Helper()
 
 	startCh := make(chan netip.AddrPort)
-	defer close(startCh)
 	errCh := make(chan error)
 
 	srv := &dns.Server{
-		Addr:         "127.0.0.1:0",
+		Addr:         netip.AddrPortFrom(netutil.IPv4Localhost(), 0).String(),
 		Net:          string(proxy.ProtoTCP),
 		Handler:      h,
 		ReadTimeout:  testTimeout,
@@ -63,48 +64,55 @@ func startLocalhostUpstream(t *testing.T, h dns.Handler) (addr *url.URL) {
 	return addr
 }
 
+// TODO(e.burkov):  Add bootstrap.
 func TestDNSService(t *testing.T) {
 	t.Parallel()
 
-	req1 := (&dns.Msg{}).SetQuestion("example.com.", dns.TypeA)
-	resp1 := (&dns.Msg{}).SetReply(req1)
+	const (
+		testDomain    = "example.com"
+		testSubdomain = "test.example.com"
+	)
 
-	req2 := (&dns.Msg{}).SetQuestion("test.example.com.", dns.TypeA)
-	resp2 := (&dns.Msg{}).SetReply(req2)
+	commonReq := (&dns.Msg{}).SetQuestion(dns.Fqdn(testDomain), dns.TypeA)
+	commonReq.Id = 1
+	commonResp := (&dns.Msg{}).SetReply(commonReq)
 
-	upsHdlr1 := func(w dns.ResponseWriter, req *dns.Msg) {
-		require.NoError(testutil.PanicT{}, w.WriteMsg(resp1))
+	subdomainReq := (&dns.Msg{}).SetQuestion(dns.Fqdn(testSubdomain), dns.TypeA)
+	subdomainReq.Id = 2
+	subdomainResp := (&dns.Msg{}).SetReply(subdomainReq)
+
+	pt := testutil.PanicT{}
+	commonUps := func(w dns.ResponseWriter, _ *dns.Msg) {
+		require.NoError(pt, w.WriteMsg(commonResp))
+	}
+	subdomainUps := func(w dns.ResponseWriter, _ *dns.Msg) {
+		require.NoError(pt, w.WriteMsg(subdomainResp))
 	}
 
-	upsHdlr2 := func(w dns.ResponseWriter, req *dns.Msg) {
-		require.NoError(testutil.PanicT{}, w.WriteMsg(resp2))
-	}
-
-	ups1URL := startLocalhostUpstream(t, dns.HandlerFunc(upsHdlr1)).String()
-	ups2URL := startLocalhostUpstream(t, dns.HandlerFunc(upsHdlr2)).String()
+	commonURL := startLocalhostUpstream(t, dns.HandlerFunc(commonUps)).String()
+	subdomainURL := startLocalhostUpstream(t, dns.HandlerFunc(subdomainUps)).String()
 
 	svc, err := dnssvc.New(&dnssvc.Config{
 		Bootstrap: &dnssvc.BootstrapConfig{},
 		Upstreams: &dnssvc.UpstreamConfig{
 			Groups: []*dnssvc.UpstreamGroupConfig{{
 				Name:    agdc.UpstreamGroupNameDefault,
-				Address: ups1URL,
-				Match:   nil,
+				Address: commonURL,
 			}, {
-				Name:    "test_group_name",
-				Address: ups2URL,
+				Name:    "domain-group",
+				Address: subdomainURL,
 				Match: []dnssvc.MatchCriteria{{
-					QuestionDomain: "test.example.com",
+					QuestionDomain: testSubdomain,
 				}},
 			}},
 			Timeout: testTimeout,
 		},
 		Fallbacks: &dnssvc.FallbackConfig{
-			Addresses: []string{ups1URL},
+			Addresses: []string{commonURL},
 			Timeout:   testTimeout,
 		},
 		ListenAddrs: []netip.AddrPort{
-			netip.MustParseAddrPort("127.0.0.1:0"),
+			netip.AddrPortFrom(netutil.IPv4Localhost(), 0),
 		},
 	})
 	require.NoError(t, err)
@@ -114,35 +122,32 @@ func TestDNSService(t *testing.T) {
 	require.NoError(t, err)
 	testutil.CleanupAndRequireSuccess(t, func() (err error) { return svc.Shutdown(ctx) })
 
+	tcpAddr := svc.Addr(proxy.ProtoTCP).String()
 	cli := &dns.Client{
 		Net:     string(proxy.ProtoTCP),
 		Timeout: testTimeout,
 	}
-	tcpAddr := svc.Addr(proxy.ProtoTCP).String()
 
 	testCases := []struct {
-		name       string
-		req        *dns.Msg
-		wantResp   *dns.Msg
-		wantErrMsg string
+		req      *dns.Msg
+		wantResp *dns.Msg
+		name     string
 	}{{
+		req:      commonReq,
+		wantResp: commonResp,
 		name:     "success",
-		req:      req1,
-		wantResp: resp1,
 	}, {
-		name:     "domain_match",
-		req:      req2,
-		wantResp: resp2,
+		req:      subdomainReq,
+		wantResp: subdomainResp,
+		name:     "domain_match_success",
 	}}
 
 	for _, tc := range testCases {
-		tc := tc
-
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
 			received, _, excErr := cli.Exchange(tc.req, tcpAddr)
-			testutil.AssertErrorMsg(t, tc.wantErrMsg, excErr)
+			require.NoError(t, excErr)
 			assert.Equal(t, tc.wantResp, received)
 		})
 	}
