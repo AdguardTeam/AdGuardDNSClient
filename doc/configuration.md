@@ -111,9 +111,14 @@ following properties:
             The domain or a suffix of the domain that the set of upstream
             servers should be used to resolve.
 
+            **Example:** `'mycompany.local'`.
+
          *  <a href="#dns-upstream-group-match-client" id="dns-upstream-group-match-client" name="dns-upstream-group-match-client">`client`</a>:
             The client's address or a subnet of the client's address that the
-            set of upstream servers should be used to resolve requests from.
+            set of upstream servers should be used to resolve requests from.  It
+            must have no significant bits outside of the subnet mask.
+
+            **Example:** `'192.0.2.0/24'`.
 
         Note, that properties specified within a single entry are combined with a
         logical *AND*.  Entries are combined with a logical *OR*.

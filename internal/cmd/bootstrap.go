@@ -42,14 +42,12 @@ func (c *bootstrapConfig) validate() (err error) {
 
 	if c.Timeout.Duration <= 0 {
 		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
-
 		errs = append(errs, err)
 	}
 
 	err = c.Servers.validate()
 	if err != nil {
 		err = fmt.Errorf("servers: %w", err)
-
 		errs = append(errs, err)
 	}
 

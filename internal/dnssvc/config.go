@@ -17,6 +17,10 @@ type Config struct {
 	// Fallbacks describes DNS fallback upstream servers.  It must not be nil.
 	Fallbacks *FallbackConfig
 
+	// ClientGetter is the function to get the client for a request.  It must
+	// not be nil.
+	ClientGetter ClientGetter
+
 	// ListenAddrs is the list of served addresses.  It must contain at least a
 	// single entry.
 	ListenAddrs []netip.AddrPort

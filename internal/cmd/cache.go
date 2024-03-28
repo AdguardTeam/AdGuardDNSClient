@@ -34,13 +34,11 @@ func (c *cacheConfig) validate() (err error) {
 
 	if c.Size == 0 {
 		err = fmt.Errorf("got size %s: %w", c.Size, errMustBePositive)
-
 		errs = append(errs, err)
 	}
 
 	if c.ClientSize == 0 {
 		err = fmt.Errorf("got client_size %s: %w", c.ClientSize, errMustBePositive)
-
 		errs = append(errs, err)
 	}
 

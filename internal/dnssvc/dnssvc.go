@@ -9,6 +9,7 @@ import (
 	"net/netip"
 
 	"github.com/AdguardTeam/dnsproxy/proxy"
+	"github.com/AdguardTeam/dnsproxy/upstream"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/AdguardTeam/golibs/service"
@@ -19,46 +20,74 @@ type DNSService struct {
 	// proxy forwards DNS requests.
 	proxy *proxy.Proxy
 
+	// clients stores upstream configurations associated with clients'
+	// addresses.
+	clients *clientStorage
+
+	// clientGetter is used to get the client's address from the request's
+	// context.  It's only used for testing.
+	//
+	// TODO(e.burkov):  Put custom client's address to proxy context, when it
+	// start supporting the [context.Context].  Then get rid of this interface.
+	clientGetter ClientGetter
+
 	// bootstrapUpstreams is a list of upstreams to close on shutdown.
 	bootstrapUpstreams []io.Closer
 }
 
 // New creates a new DNSService.  conf must not be nil.
 func New(conf *Config) (svc *DNSService, err error) {
-	prxConf, bootUps, err := newProxyConfig(conf)
+	boot, bootUps, err := newResolvers(conf.Bootstrap)
 	if err != nil {
-		return nil, fmt.Errorf("creating proxy configuration: %w", err)
+		// Don't wrap the error, because it's informative enough as is.
+		return nil, err
 	}
+
+	prxConf, strg, err := newProxyConfig(conf, boot)
+	if err != nil {
+		// Don't wrap the error, because it's informative enough as is.
+		return nil, err
+	}
+
+	svc = &DNSService{
+		clientGetter: conf.ClientGetter,
+	}
+	prxConf.RequestHandler = svc.handleRequest
 
 	prx, err := proxy.New(prxConf)
 	if err != nil {
 		return nil, fmt.Errorf("creating proxy: %w", err)
 	}
 
-	return &DNSService{
-		proxy:              prx,
-		bootstrapUpstreams: bootUps,
-	}, nil
+	svc.proxy = prx
+	svc.clients = strg
+	svc.bootstrapUpstreams = bootUps
+
+	return svc, nil
 }
 
-// newProxyConfig creates a new [proxy.Config] from conf.  conf must not be nil.
-func newProxyConfig(conf *Config) (prxConf *proxy.Config, bootUps []io.Closer, err error) {
-	boot, bootUps, err := newResolvers(conf.Bootstrap)
+// newProxyConfig creates a new [proxy.Config] from conf using boot for all
+// upstream configurations.  It returns a ready-to-use configuration and a
+// storage of clients with their specific upstream configurations.
+func newProxyConfig(
+	conf *Config,
+	boot upstream.Resolver,
+) (prxConf *proxy.Config, strg *clientStorage, err error) {
+	defer func() { err = errors.Annotate(err, "creating proxy configuration: %w") }()
+
+	configs, err := newUpstreams(conf.Upstreams, boot)
 	if err != nil {
 		// Don't wrap the error, because it's informative enough as is.
 		return nil, nil, err
 	}
 
-	ups, err := newUpstreams(conf.Upstreams, boot)
-	if err != nil {
-		// Don't wrap the error, because it's informative enough as is.
-		return nil, bootUps, err
-	}
+	ups := configs[netip.Prefix{}]
+	delete(configs, netip.Prefix{})
 
 	falls, err := newFallbacks(conf.Fallbacks, boot)
 	if err != nil {
 		// Don't wrap the error, because it's informative enough as is.
-		return nil, bootUps, err
+		return nil, nil, err
 	}
 
 	udp, tcp := newListenAddrs(conf.ListenAddrs)
@@ -68,13 +97,15 @@ func newProxyConfig(conf *Config) (prxConf *proxy.Config, bootUps []io.Closer, e
 		netip.PrefixFrom(netip.IPv6Unspecified(), 0),
 	}
 
+	strg = newClientStorage(newClients(configs))
+
 	return &proxy.Config{
 		UDPListenAddr:  udp,
 		TCPListenAddr:  tcp,
 		UpstreamConfig: ups,
 		Fallbacks:      falls,
 		TrustedProxies: trusted,
-	}, bootUps, nil
+	}, strg, nil
 }
 
 // newListenAddrs creates a new list of UDP and TCP addresses from addrs.
@@ -108,6 +139,7 @@ func (svc *DNSService) Shutdown(ctx context.Context) (err error) {
 		errs = append(errs, fmt.Errorf("stopping proxy: %w", err))
 	}
 
+	errs = append(errs, svc.clients.close()...)
 	errs = append(errs, svc.closeBootstraps()...)
 
 	return errors.Join(errs...)
@@ -119,10 +151,21 @@ func (svc *DNSService) closeBootstraps() (errs []error) {
 		err := u.Close()
 		if err != nil {
 			err = fmt.Errorf("closing bootstrap at index %d: %w", i, err)
-
 			errs = append(errs, err)
 		}
 	}
 
 	return errs
+}
+
+// handleRequest is a [proxy.RequestHandler].
+func (svc *DNSService) handleRequest(p *proxy.Proxy, ctx *proxy.DNSContext) (err error) {
+	addr := svc.clientGetter.Address(ctx)
+
+	c := svc.clients.find(addr)
+	if c != nil {
+		ctx.CustomUpstreamConfig = c.conf
+	}
+
+	return p.Resolve(ctx)
 }

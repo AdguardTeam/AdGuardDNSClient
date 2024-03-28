@@ -14,6 +14,8 @@ import (
 )
 
 // UpstreamConfig is the configuration for DNS upstream servers.
+//
+// TODO(e.burkov):  Put the default groups into separate fields.
 type UpstreamConfig struct {
 	// Groups is the list of groups.
 	Groups []*UpstreamGroupConfig
@@ -27,28 +29,27 @@ type UpstreamConfig struct {
 func newUpstreams(
 	conf *UpstreamConfig,
 	boot upstream.Resolver,
-) (general *proxy.UpstreamConfig, err error) {
+) (configs map[netip.Prefix]*proxy.UpstreamConfig, err error) {
+	defer func() { err = errors.Annotate(err, "creating upstreams: %w") }()
+
 	opts := &upstream.Options{
 		Timeout:   conf.Timeout,
 		Bootstrap: boot,
 	}
 
-	config := &proxy.UpstreamConfig{}
+	configs = map[netip.Prefix]*proxy.UpstreamConfig{}
 	upstreams := map[string]upstream.Upstream{}
 
 	var errs []error
 	for _, g := range conf.Groups {
-		err = g.addGroup(config, upstreams, opts)
+		err = g.addGroup(configs, upstreams, opts)
 		if err != nil {
+			err = fmt.Errorf("adding group %q: %w", g.Name, err)
 			errs = append(errs, err)
 		}
 	}
 
-	if len(errs) > 0 {
-		return nil, fmt.Errorf("creating upstreams: %w", errors.Join(errs...))
-	}
-
-	return config, nil
+	return configs, errors.Join(errs...)
 }
 
 // UpstreamGroupConfig is the configuration for a DNS upstream group.
@@ -63,11 +64,23 @@ type UpstreamGroupConfig struct {
 	Match []MatchCriteria
 }
 
-// addGroup creates and puts the upstream from ugc into conf.  addrToUps is used
-// to avoid creating upstreams from the identical addresses.  opts are used for
-// creating upstreams.
+// MatchCriteria is the criteria for matching the upstream group to handle DNS
+// requests.
+type MatchCriteria struct {
+	// Client is the prefix to match the client address.
+	Client netip.Prefix
+
+	// QuestionDomain is the suffix to match the question domain.
+	QuestionDomain string
+}
+
+// addGroup creates and puts the upstream from ugc into configs.  addrToUps is
+// used to avoid creating upstreams from the identical addresses.  opts are used
+// for creating upstreams.
+//
+// TODO(e.burkov):  Lowercase addrs.
 func (ugc *UpstreamGroupConfig) addGroup(
-	conf *proxy.UpstreamConfig,
+	configs map[netip.Prefix]*proxy.UpstreamConfig,
 	addrToUps map[string]upstream.Upstream,
 	opts *upstream.Options,
 ) (err error) {
@@ -82,19 +95,27 @@ func (ugc *UpstreamGroupConfig) addGroup(
 	}
 
 	if ugc.Name == agdc.UpstreamGroupNameDefault {
-		conf.Upstreams = append(conf.Upstreams, u)
+		configs[netip.Prefix{}] = &proxy.UpstreamConfig{
+			Upstreams: []upstream.Upstream{u},
+		}
 
 		return nil
 	}
 
 	for _, m := range ugc.Match {
-		addUpstream(conf, u, strings.ToLower(m.QuestionDomain))
+		conf := configs[m.Client]
+		if conf == nil {
+			conf = &proxy.UpstreamConfig{}
+			configs[m.Client] = conf
+		}
+
+		addUpstream(conf, u, m.QuestionDomain)
 	}
 
 	return nil
 }
 
-// addUpstream adds u to the conf.  u considered a domain-specific upstream, if
+// addUpstream adds u to conf.  u is considered a domain-specific upstream, if
 // domain is not empty.
 func addUpstream(conf *proxy.UpstreamConfig, u upstream.Upstream, domain string) {
 	if domain == "" {
@@ -110,17 +131,7 @@ func addUpstream(conf *proxy.UpstreamConfig, u upstream.Upstream, domain string)
 		conf.SpecifiedDomainUpstreams = map[string][]upstream.Upstream{}
 	}
 
-	domain = dns.Fqdn(domain)
+	domain = dns.Fqdn(strings.ToLower(domain))
 	conf.DomainReservedUpstreams[domain] = append(conf.DomainReservedUpstreams[domain], u)
 	conf.SpecifiedDomainUpstreams[domain] = append(conf.SpecifiedDomainUpstreams[domain], u)
-}
-
-// MatchCriteria is the criteria for matching the upstream group to handle DNS
-// requests.
-type MatchCriteria struct {
-	// Client is the prefix to match the client address.
-	Client netip.Prefix
-
-	// QuestionDomain is the suffix to match the question domain.
-	QuestionDomain string
 }

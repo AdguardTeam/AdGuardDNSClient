@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"net/netip"
+	"slices"
+	"strings"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
@@ -13,7 +16,7 @@ import (
 
 // upstreamConfig is the configuration for the DNS upstream servers.
 type upstreamConfig struct {
-	// Groups contains all the grous of servers.
+	// Groups contains all the groups of servers.
 	Groups upstreamGroupsConfig `yaml:"groups"`
 
 	// Timeout constrains the time for sending requests and receiving responses.
@@ -60,9 +63,9 @@ func (c *upstreamConfig) validate() (err error) {
 	}
 
 	var errs []error
+
 	if c.Timeout.Duration <= 0 {
 		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
-
 		errs = append(errs, err)
 	}
 
@@ -73,9 +76,56 @@ func (c *upstreamConfig) validate() (err error) {
 	return errors.Join(errs...)
 }
 
-// upstreamGroupsConfig is the configuration for the set of groups of DNS
-// upstream servers.
+// indexedMatch is a key for matchSet.  It's essentially an
+// [upstreamMatchConfig] with a lowercased question domain.
+type indexedMatch struct {
+	domain string
+	client netip.Prefix
+}
+
+// matchSet validates that no two matches have the same domain and client in
+// different upstream groups.
+type matchSet map[indexedMatch]agdc.UpstreamGroupName
+
+// validateMatches returns an error if the matches in g conflict with the ones
+// in s.  name is the name of the group g.
+func (s matchSet) validateMatches(g *upstreamGroupConfig, name agdc.UpstreamGroupName) (err error) {
+	var errs []error
+	for i, m := range g.Match {
+		key := m.toIndexedMatch()
+
+		another, ok := s[key]
+		if !ok {
+			s[key] = name
+
+			continue
+		}
+
+		if another == name {
+			err = errMustBeUnique
+		} else {
+			err = fmt.Errorf("conflicts with group %q", another)
+		}
+
+		err = fmt.Errorf("match: at index %d: %w", i, err)
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+// upstreamGroupsConfig is the configuration for a set of groups of DNS upstream
+// servers.
 type upstreamGroupsConfig map[agdc.UpstreamGroupName]*upstreamGroupConfig
+
+// requiredGroups is the list of groups that must be present in a valid
+// [upstreamGroupsConfig].  Those should also have no match criteria.
+//
+// TODO(e.burkov):  Add IsRequired method to UpstreamGroupName?
+var requiredGroups = []agdc.UpstreamGroupName{
+	agdc.UpstreamGroupNameDefault,
+	// TODO(e.burkov):  Add UpstreamGroupNamePrivate.
+}
 
 // type check
 var _ validator = (upstreamGroupsConfig)(nil)
@@ -86,12 +136,9 @@ func (c upstreamGroupsConfig) validate() (err error) {
 
 	if c == nil {
 		return errNoValue
-	} else if len(c) == 0 {
-		return errEmptyValue
 	}
 
 	errs := c.validateRequiredGroups()
-
 	errs = append(errs, c.validateGroups()...)
 
 	return errors.Join(errs...)
@@ -100,10 +147,7 @@ func (c upstreamGroupsConfig) validate() (err error) {
 // validateRequiredGroups returns errors of validating the required groups
 // within c.
 func (c upstreamGroupsConfig) validateRequiredGroups() (errs []error) {
-	for _, required := range []agdc.UpstreamGroupName{
-		agdc.UpstreamGroupNameDefault,
-		// TODO(e.burkov):  Add UpstreamGroupNamePrivate.
-	} {
+	for _, required := range requiredGroups {
 		if g, ok := c[required]; !ok {
 			errs = append(errs, fmt.Errorf("group %q must be specified", required))
 		} else if len(g.Match) > 0 {
@@ -115,13 +159,19 @@ func (c upstreamGroupsConfig) validateRequiredGroups() (errs []error) {
 }
 
 // validateGroups returns errors of validating the groups within c.
-//
-// TODO(e.burkov):  Skip required groups and require matches.
 func (c upstreamGroupsConfig) validateGroups() (errs []error) {
+	matches := matchSet{}
 	mapsutil.OrderedRange(c, func(name agdc.UpstreamGroupName, g *upstreamGroupConfig) (cont bool) {
 		err := g.validate()
+		if err == nil && !slices.Contains(requiredGroups, name) {
+			// Only validate matches if the group is valid and is expected to
+			// have them.
+			err = matches.validateMatches(g, name)
+		}
+
 		if err != nil {
-			errs = append(errs, fmt.Errorf("group %q: %w", name, err))
+			err = fmt.Errorf("group %q: %w", name, err)
+			errs = append(errs, err)
 		}
 
 		return true
@@ -154,10 +204,9 @@ func (c *upstreamGroupConfig) validate() (err error) {
 	}
 
 	for i, m := range c.Match {
-		err = m.validate()
+		err = m.validateValues()
 		if err != nil {
 			err = fmt.Errorf("match: at index %d: %w", i, err)
-
 			errs = append(errs, err)
 		}
 	}
@@ -165,34 +214,51 @@ func (c *upstreamGroupConfig) validate() (err error) {
 	return errors.Join(errs...)
 }
 
-// upstreamMatchConfig is the configuration for a criteria for choosing an
+// upstreamMatchConfig is the configuration for criteria for choosing an
 // upstream group.
 type upstreamMatchConfig struct {
-	// Client is the client's subnet to match.
+	// Client is the client's subnet to match.  Prefix itself should be masked.
 	Client netutil.Prefix `yaml:"client"`
 
 	// QuestionDomain is the domain name from request's question to match.
 	QuestionDomain string `yaml:"question_domain"`
 }
 
-// validate returns an error if c is not valid.  It doesn't include its own name
-// into an error to be used in different configuration sections, and therefore
-// violates the [validator.validate] contract.
-func (c *upstreamMatchConfig) validate() (err error) {
-	if c == nil {
+// validateValues returns an error if c contains invalid question domain or
+// client's prefix.
+func (c *upstreamMatchConfig) validateValues() (err error) {
+	switch {
+	case c == nil:
 		return errNoValue
-	} else if *c == (upstreamMatchConfig{}) {
+	case *c == (upstreamMatchConfig{}):
 		return errEmptyValue
+	default:
+		// Go on.
 	}
 
-	if c.QuestionDomain == "" {
-		return nil
+	var errs []error
+
+	if c.QuestionDomain != "" {
+		err = netutil.ValidateDomainName(c.QuestionDomain)
+		if err != nil {
+			err = fmt.Errorf("question_domain: %w", err)
+			errs = append(errs, err)
+		}
 	}
 
-	err = netutil.ValidateDomainName(c.QuestionDomain)
-	if err != nil {
-		return fmt.Errorf("question_domain: %w", err)
+	if c.Client.Prefix != c.Client.Masked() {
+		err = fmt.Errorf("client: %s must has %d significant bits", c.Client, c.Client.Bits())
+		errs = append(errs, err)
 	}
 
-	return nil
+	return errors.Join(errs...)
+}
+
+// toIndexedMatch converts the upstream match configuration to a key for
+// [matchSet].
+func (c *upstreamMatchConfig) toIndexedMatch() (im indexedMatch) {
+	return indexedMatch{
+		domain: strings.ToLower(c.QuestionDomain),
+		client: c.Client.Prefix,
+	}
 }

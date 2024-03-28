@@ -64,6 +64,19 @@ func startLocalhostUpstream(t *testing.T, h dns.Handler) (addr *url.URL) {
 	return addr
 }
 
+// testClientGetter is a mock implementation of [dnssvc.ClientGetter] for tests.
+type testClientGetter struct {
+	OnAddress func(dctx *proxy.DNSContext) (addr netip.Addr)
+}
+
+// type check
+var _ dnssvc.ClientGetter = (*testClientGetter)(nil)
+
+// Address implements the [dnssvc.ClientGetter] interface for *testClientGetter.
+func (cg *testClientGetter) Address(dctx *proxy.DNSContext) (addr netip.Addr) {
+	return cg.OnAddress(dctx)
+}
+
 // TODO(e.burkov):  Add bootstrap.
 func TestDNSService(t *testing.T) {
 	t.Parallel()
@@ -81,6 +94,14 @@ func TestDNSService(t *testing.T) {
 	subdomainReq.Id = 2
 	subdomainResp := (&dns.Msg{}).SetReply(subdomainReq)
 
+	cliSpecReq := (&dns.Msg{}).SetQuestion(dns.Fqdn(testDomain), dns.TypeA)
+	cliSpecReq.Id = 3
+	cliSpecResp := (&dns.Msg{}).SetReply(cliSpecReq)
+
+	subdomainCliSpecReq := (&dns.Msg{}).SetQuestion(dns.Fqdn(testSubdomain), dns.TypeA)
+	subdomainCliSpecReq.Id = 4
+	subdomainCliSpecResp := (&dns.Msg{}).SetReply(subdomainCliSpecReq)
+
 	pt := testutil.PanicT{}
 	commonUps := func(w dns.ResponseWriter, _ *dns.Msg) {
 		require.NoError(pt, w.WriteMsg(commonResp))
@@ -88,9 +109,34 @@ func TestDNSService(t *testing.T) {
 	subdomainUps := func(w dns.ResponseWriter, _ *dns.Msg) {
 		require.NoError(pt, w.WriteMsg(subdomainResp))
 	}
+	cliSpecUps := func(w dns.ResponseWriter, _ *dns.Msg) {
+		require.NoError(pt, w.WriteMsg(cliSpecResp))
+	}
+	subdomainCliSpecUps := func(w dns.ResponseWriter, _ *dns.Msg) {
+		require.NoError(pt, w.WriteMsg(subdomainCliSpecResp))
+	}
 
 	commonURL := startLocalhostUpstream(t, dns.HandlerFunc(commonUps)).String()
 	subdomainURL := startLocalhostUpstream(t, dns.HandlerFunc(subdomainUps)).String()
+	cliSpecURL := startLocalhostUpstream(t, dns.HandlerFunc(cliSpecUps)).String()
+	subdomainCliSpecURL := startLocalhostUpstream(t, dns.HandlerFunc(subdomainCliSpecUps)).String()
+
+	cli1Addr := netip.MustParseAddr("1.2.3.4")
+	cli2Addr := netip.MustParseAddr("4.3.2.1")
+	cli2Pref := netip.PrefixFrom(cli2Addr, cli2Addr.BitLen())
+
+	cliGetter := &testClientGetter{
+		OnAddress: func(dctx *proxy.DNSContext) (addr netip.Addr) {
+			switch dctx.Req.Id {
+			case commonReq.Id, subdomainReq.Id:
+				return cli1Addr
+			case cliSpecReq.Id, subdomainCliSpecReq.Id:
+				return cli2Addr
+			default:
+				panic("unexpected request")
+			}
+		},
+	}
 
 	svc, err := dnssvc.New(&dnssvc.Config{
 		Bootstrap: &dnssvc.BootstrapConfig{},
@@ -104,13 +150,29 @@ func TestDNSService(t *testing.T) {
 				Match: []dnssvc.MatchCriteria{{
 					QuestionDomain: testSubdomain,
 				}},
+			}, {
+				Name:    "client-group",
+				Address: cliSpecURL,
+				Match: []dnssvc.MatchCriteria{{
+					Client: cli2Pref,
+				}},
+			}, {
+				Name:    "domain-client-group",
+				Address: subdomainCliSpecURL,
+				Match: []dnssvc.MatchCriteria{{
+					Client:         cli2Pref,
+					QuestionDomain: testSubdomain,
+				}},
 			}},
 			Timeout: testTimeout,
 		},
 		Fallbacks: &dnssvc.FallbackConfig{
-			Addresses: []string{commonURL},
-			Timeout:   testTimeout,
+			Addresses: []string{
+				commonURL,
+			},
+			Timeout: testTimeout,
 		},
+		ClientGetter: cliGetter,
 		ListenAddrs: []netip.AddrPort{
 			netip.AddrPortFrom(netutil.IPv4Localhost(), 0),
 		},
@@ -123,6 +185,7 @@ func TestDNSService(t *testing.T) {
 	testutil.CleanupAndRequireSuccess(t, func() (err error) { return svc.Shutdown(ctx) })
 
 	tcpAddr := svc.Addr(proxy.ProtoTCP).String()
+
 	cli := &dns.Client{
 		Net:     string(proxy.ProtoTCP),
 		Timeout: testTimeout,
@@ -140,6 +203,14 @@ func TestDNSService(t *testing.T) {
 		req:      subdomainReq,
 		wantResp: subdomainResp,
 		name:     "domain_match_success",
+	}, {
+		req:      cliSpecReq,
+		wantResp: cliSpecResp,
+		name:     "client_match_success",
+	}, {
+		req:      subdomainCliSpecReq,
+		wantResp: subdomainCliSpecResp,
+		name:     "domain_client_match_success",
 	}}
 
 	for _, tc := range testCases {

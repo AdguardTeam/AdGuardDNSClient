@@ -88,9 +88,9 @@ func (c urlConfigs) validate() (err error) {
 		default:
 			continue
 		}
+
 		if err != nil {
 			err = fmt.Errorf("at index %d: address: %w", i, err)
-
 			errs = append(errs, err)
 		}
 	}

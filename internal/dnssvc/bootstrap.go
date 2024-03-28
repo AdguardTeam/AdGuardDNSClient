@@ -22,6 +22,8 @@ type BootstrapConfig struct {
 // newResolvers creates a new bootstrap resolver and a list of upstreams to
 // close on shutdown.
 func newResolvers(conf *BootstrapConfig) (boot upstream.Resolver, closers []io.Closer, err error) {
+	defer func() { err = errors.Annotate(err, "creating bootstraps: %w") }()
+
 	opts := &upstream.Options{
 		Timeout: conf.Timeout,
 	}
@@ -44,9 +46,5 @@ func newResolvers(conf *BootstrapConfig) (boot upstream.Resolver, closers []io.C
 		closers = append(closers, b.Upstream)
 	}
 
-	if len(errs) > 0 {
-		return nil, nil, fmt.Errorf("creating bootstraps: %w", errors.Join(errs...))
-	}
-
-	return resolvers, closers, nil
+	return resolvers, closers, errors.Join(errs...)
 }

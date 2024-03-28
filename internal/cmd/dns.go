@@ -57,10 +57,11 @@ func (c *dnsConfig) validate() (err error) {
 // must be valid.
 func (c *dnsConfig) toInternal() (conf *dnssvc.Config) {
 	return &dnssvc.Config{
-		Bootstrap:   c.Bootstrap.toInternal(),
-		Upstreams:   c.Upstream.toInternal(),
-		Fallbacks:   c.Fallback.toInternal(),
-		ListenAddrs: c.Server.ListenAddresses.toInternal(),
+		Bootstrap:    c.Bootstrap.toInternal(),
+		Upstreams:    c.Upstream.toInternal(),
+		Fallbacks:    c.Fallback.toInternal(),
+		ClientGetter: dnssvc.DefaultClientGetter{},
+		ListenAddrs:  c.Server.ListenAddresses.toInternal(),
 	}
 }
 
@@ -113,7 +114,6 @@ func (c ipPortConfigs) validate() (res error) {
 		err := addr.validate()
 		if err != nil {
 			err = fmt.Errorf("at index %d: %w", i, err)
-
 			errs = append(errs, err)
 		}
 	}
