@@ -9,7 +9,7 @@ import (
 // ClientGetter retrieves the client's address from the DNS context.
 type ClientGetter interface {
 	// Address returns the client's address.
-	Address(dctx *proxy.DNSContext) (addr netip.Addr)
+	Address(dctx *proxy.DNSContext) (addr netip.AddrPort)
 }
 
 // DefaultClientGetter is a default implementation of ClientGetter.
@@ -19,6 +19,6 @@ type DefaultClientGetter struct{}
 var _ ClientGetter = DefaultClientGetter{}
 
 // Address implements the ClientGetter interface for defaultClientGetter.
-func (DefaultClientGetter) Address(dctx *proxy.DNSContext) (addr netip.Addr) {
-	return dctx.Addr.Addr()
+func (DefaultClientGetter) Address(dctx *proxy.DNSContext) (addr netip.AddrPort) {
+	return dctx.Addr
 }

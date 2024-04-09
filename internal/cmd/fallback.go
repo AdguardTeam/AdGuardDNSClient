@@ -32,14 +32,12 @@ func (c *fallbackConfig) validate() (err error) {
 
 	if c.Timeout.Duration <= 0 {
 		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
-
 		errs = append(errs, err)
 	}
 
 	err = c.Servers.validate()
 	if err != nil {
 		err = fmt.Errorf("servers: %w", err)
-
 		errs = append(errs, err)
 	}
 
@@ -89,10 +87,8 @@ func (c urlConfigs) validate() (err error) {
 			continue
 		}
 
-		if err != nil {
-			err = fmt.Errorf("at index %d: address: %w", i, err)
-			errs = append(errs, err)
-		}
+		err = fmt.Errorf("at index %d: address: %w", i, err)
+		errs = append(errs, err)
 	}
 
 	return errors.Join(errs...)

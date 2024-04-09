@@ -6,6 +6,7 @@ import (
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/netutil"
 )
 
 // dnsConfig is the configuration for handling DNS.
@@ -57,11 +58,13 @@ func (c *dnsConfig) validate() (err error) {
 // must be valid.
 func (c *dnsConfig) toInternal() (conf *dnssvc.Config) {
 	return &dnssvc.Config{
-		Bootstrap:    c.Bootstrap.toInternal(),
-		Upstreams:    c.Upstream.toInternal(),
-		Fallbacks:    c.Fallback.toInternal(),
-		ClientGetter: dnssvc.DefaultClientGetter{},
-		ListenAddrs:  c.Server.ListenAddresses.toInternal(),
+		// TODO(e.burkov):  Consider making configurable.
+		PrivateSubnets: netutil.SubnetSetFunc(netutil.IsLocallyServed),
+		Bootstrap:      c.Bootstrap.toInternal(),
+		Upstreams:      c.Upstream.toInternal(),
+		Fallbacks:      c.Fallback.toInternal(),
+		ClientGetter:   dnssvc.DefaultClientGetter{},
+		ListenAddrs:    c.Server.ListenAddresses.toInternal(),
 	}
 }
 

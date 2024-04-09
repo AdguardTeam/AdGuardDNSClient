@@ -2,12 +2,20 @@ package dnssvc
 
 import (
 	"net/netip"
+
+	"github.com/AdguardTeam/golibs/netutil"
 )
 
 // Config is the configuration for [DNSService].
 //
 // TODO(e.burkov):  Add cache.
 type Config struct {
+	// PrivateSubnets is the set of IP networks considered private.  The PTR
+	// requests for ARPA domains considered private if the domain contains an IP
+	// from one of the networks and the request came from the client within one
+	// of the networks.  It must not be nil.
+	PrivateSubnets netutil.SubnetSet
+
 	// Bootstrap describes bootstrapping DNS servers.  It must not be nil.
 	Bootstrap *BootstrapConfig
 

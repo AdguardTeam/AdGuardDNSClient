@@ -29,7 +29,8 @@ func (c *upstreamConfig) toInternal() (conf *dnssvc.UpstreamConfig) {
 	conf = &dnssvc.UpstreamConfig{
 		Timeout: c.Timeout.Duration,
 	}
-	rangeFunc := func(name agdc.UpstreamGroupName, g *upstreamGroupConfig) (cont bool) {
+
+	for name, g := range c.Groups {
 		grpConf := &dnssvc.UpstreamGroupConfig{
 			Name:    name,
 			Address: g.Address,
@@ -42,11 +43,7 @@ func (c *upstreamConfig) toInternal() (conf *dnssvc.UpstreamConfig) {
 		}
 
 		conf.Groups = append(conf.Groups, grpConf)
-
-		return true
 	}
-
-	mapsutil.OrderedRange(c.Groups, rangeFunc)
 
 	return conf
 }
@@ -87,31 +84,24 @@ type indexedMatch struct {
 // different upstream groups.
 type matchSet map[indexedMatch]agdc.UpstreamGroupName
 
-// validateMatches returns an error if the matches in g conflict with the ones
-// in s.  name is the name of the group g.
-func (s matchSet) validateMatches(g *upstreamGroupConfig, name agdc.UpstreamGroupName) (err error) {
-	var errs []error
-	for i, m := range g.Match {
-		key := m.toIndexedMatch()
+// addMatch returns an error if m conflicts with the ones in s.  name is the
+// name of the group containing m.
+func (s matchSet) addMatch(name agdc.UpstreamGroupName, m *upstreamMatchConfig) (err error) {
+	key := m.toIndexedMatch()
+	another, ok := s[key]
+	if !ok {
+		s[key] = name
 
-		another, ok := s[key]
-		if !ok {
-			s[key] = name
-
-			continue
-		}
-
-		if another == name {
-			err = errMustBeUnique
-		} else {
-			err = fmt.Errorf("conflicts with group %q", another)
-		}
-
-		err = fmt.Errorf("match: at index %d: %w", i, err)
-		errs = append(errs, err)
+		return nil
 	}
 
-	return errors.Join(errs...)
+	if another == name {
+		err = errMustBeUnique
+	} else {
+		err = fmt.Errorf("conflicts with group %q", another)
+	}
+
+	return err
 }
 
 // upstreamGroupsConfig is the configuration for a set of groups of DNS upstream
@@ -120,11 +110,9 @@ type upstreamGroupsConfig map[agdc.UpstreamGroupName]*upstreamGroupConfig
 
 // requiredGroups is the list of groups that must be present in a valid
 // [upstreamGroupsConfig].  Those should also have no match criteria.
-//
-// TODO(e.burkov):  Add IsRequired method to UpstreamGroupName?
 var requiredGroups = []agdc.UpstreamGroupName{
 	agdc.UpstreamGroupNameDefault,
-	// TODO(e.burkov):  Add UpstreamGroupNamePrivate.
+	agdc.UpstreamGroupNamePrivate,
 }
 
 // type check
@@ -138,37 +126,29 @@ func (c upstreamGroupsConfig) validate() (err error) {
 		return errNoValue
 	}
 
-	errs := c.validateRequiredGroups()
+	var errs []error
+	for _, name := range requiredGroups {
+		if _, ok := c[name]; !ok {
+			err = fmt.Errorf("group %q: must be present", name)
+			errs = append(errs, err)
+		}
+	}
+
 	errs = append(errs, c.validateGroups()...)
 
 	return errors.Join(errs...)
 }
 
-// validateRequiredGroups returns errors of validating the required groups
-// within c.
-func (c upstreamGroupsConfig) validateRequiredGroups() (errs []error) {
-	for _, required := range requiredGroups {
-		if g, ok := c[required]; !ok {
-			errs = append(errs, fmt.Errorf("group %q must be specified", required))
-		} else if len(g.Match) > 0 {
-			errs = append(errs, fmt.Errorf("group %q: %w", required, errMustHaveNoMatch))
-		}
-	}
-
-	return errs
-}
-
-// validateGroups returns errors of validating the groups within c.
+// validateGroups returns the errors of validating groups within c.
 func (c upstreamGroupsConfig) validateGroups() (errs []error) {
-	matches := matchSet{}
-	mapsutil.OrderedRange(c, func(name agdc.UpstreamGroupName, g *upstreamGroupConfig) (cont bool) {
-		err := g.validate()
-		if err == nil && !slices.Contains(requiredGroups, name) {
-			// Only validate matches if the group is valid and is expected to
-			// have them.
-			err = matches.validateMatches(g, name)
+	ms := matchSet{}
+	mapsutil.SortedRange(c, func(name agdc.UpstreamGroupName, g *upstreamGroupConfig) (cont bool) {
+		var err error
+		if slices.Contains(requiredGroups, name) {
+			err = g.validateAsRequired()
+		} else {
+			err = g.validateAsCustom(ms, name)
 		}
-
 		if err != nil {
 			err = fmt.Errorf("group %q: %w", name, err)
 			errs = append(errs, err)
@@ -189,10 +169,9 @@ type upstreamGroupConfig struct {
 	Match []*upstreamMatchConfig `yaml:"match"`
 }
 
-// validate returns an error if c is not valid.  It doesn't include its own name
-// into an error to be wrapped with different group names, and therefore
-// violates the [validator.validate] contract.
-func (c *upstreamGroupConfig) validate() (err error) {
+// validateAsRequired returns an error if c is not a valid required group
+// configuration.
+func (c *upstreamGroupConfig) validateAsRequired() (err error) {
 	if c == nil {
 		return errNoValue
 	}
@@ -200,11 +179,34 @@ func (c *upstreamGroupConfig) validate() (err error) {
 	var errs []error
 
 	if c.Address == "" {
-		errs = append(errs, fmt.Errorf("address: %w", errNoValue))
+		err = fmt.Errorf("address: %w", errNoValue)
+		errs = append(errs, err)
+	}
+
+	if len(c.Match) > 0 {
+		err = errMustHaveNoMatch
+		errs = append(errs, err)
+	}
+
+	return errors.Join(errs...)
+}
+
+// validateAsCustom returns an error if c is not a valid custom group
+// configuration for group named n.
+func (c *upstreamGroupConfig) validateAsCustom(s matchSet, n agdc.UpstreamGroupName) (err error) {
+	if c == nil {
+		return errNoValue
+	}
+
+	var errs []error
+
+	if c.Address == "" {
+		err = fmt.Errorf("address: %w", errNoValue)
+		errs = append(errs, err)
 	}
 
 	for i, m := range c.Match {
-		err = m.validateValues()
+		err = m.validate(s, n)
 		if err != nil {
 			err = fmt.Errorf("match: at index %d: %w", i, err)
 			errs = append(errs, err)
@@ -224,18 +226,21 @@ type upstreamMatchConfig struct {
 	QuestionDomain string `yaml:"question_domain"`
 }
 
-// validateValues returns an error if c contains invalid question domain or
-// client's prefix.
-func (c *upstreamMatchConfig) validateValues() (err error) {
+// validate returns error if c is not valid.
+func (c *upstreamMatchConfig) validate(s matchSet, name agdc.UpstreamGroupName) (err error) {
 	switch {
 	case c == nil:
 		return errNoValue
 	case *c == (upstreamMatchConfig{}):
 		return errEmptyValue
 	default:
-		// Go on.
+		return c.validateValues(s, name)
 	}
+}
 
+// validateValues returns error if c contains invalid values.  c must not be
+// nil.
+func (c *upstreamMatchConfig) validateValues(s matchSet, name agdc.UpstreamGroupName) (err error) {
 	var errs []error
 
 	if c.QuestionDomain != "" {
@@ -250,6 +255,8 @@ func (c *upstreamMatchConfig) validateValues() (err error) {
 		err = fmt.Errorf("client: %s must has %d significant bits", c.Client, c.Client.Bits())
 		errs = append(errs, err)
 	}
+
+	errs = append(errs, s.addMatch(name, c))
 
 	return errors.Join(errs...)
 }

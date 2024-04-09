@@ -43,7 +43,7 @@ func New(conf *Config) (svc *DNSService, err error) {
 		return nil, err
 	}
 
-	prxConf, strg, err := newProxyConfig(conf, boot)
+	prxConf, clients, err := newProxyConfig(conf, boot)
 	if err != nil {
 		// Don't wrap the error, because it's informative enough as is.
 		return nil, err
@@ -51,7 +51,9 @@ func New(conf *Config) (svc *DNSService, err error) {
 
 	svc = &DNSService{
 		clientGetter: conf.ClientGetter,
+		clients:      newClientStorage(clients),
 	}
+	prxConf.BeforeRequestHandler = svc
 	prxConf.RequestHandler = svc.handleRequest
 
 	prx, err := proxy.New(prxConf)
@@ -60,35 +62,36 @@ func New(conf *Config) (svc *DNSService, err error) {
 	}
 
 	svc.proxy = prx
-	svc.clients = strg
 	svc.bootstrapUpstreams = bootUps
 
 	return svc, nil
 }
 
 // newProxyConfig creates a new [proxy.Config] from conf using boot for all
-// upstream configurations.  It returns a ready-to-use configuration and a
-// storage of clients with their specific upstream configurations.
+// upstream configurations.  It returns a ready-to-use configuration and clients
+// with their specific upstream configurations.
 func newProxyConfig(
 	conf *Config,
 	boot upstream.Resolver,
-) (prxConf *proxy.Config, strg *clientStorage, err error) {
+) (prxConf *proxy.Config, clients []*client, err error) {
 	defer func() { err = errors.Annotate(err, "creating proxy configuration: %w") }()
 
-	configs, err := newUpstreams(conf.Upstreams, boot)
+	ups, private, err := newUpstreams(conf.Upstreams, boot)
 	if err != nil {
 		// Don't wrap the error, because it's informative enough as is.
 		return nil, nil, err
 	}
-
-	ups := configs[netip.Prefix{}]
-	delete(configs, netip.Prefix{})
 
 	falls, err := newFallbacks(conf.Fallbacks, boot)
 	if err != nil {
 		// Don't wrap the error, because it's informative enough as is.
 		return nil, nil, err
 	}
+
+	// Use the upstream configuration with no client specification as the
+	// general one.  Also remove it from the map, to build the clients list.
+	general := ups[netip.Prefix{}]
+	delete(ups, netip.Prefix{})
 
 	udp, tcp := newListenAddrs(conf.ListenAddrs)
 	// TODO(e.burkov):  Consider making configurable.
@@ -97,15 +100,17 @@ func newProxyConfig(
 		netip.PrefixFrom(netip.IPv6Unspecified(), 0),
 	}
 
-	strg = newClientStorage(newClients(configs))
-
 	return &proxy.Config{
-		UDPListenAddr:  udp,
-		TCPListenAddr:  tcp,
-		UpstreamConfig: ups,
+		UDPListenAddr:             udp,
+		TCPListenAddr:             tcp,
+		UpstreamConfig:            general,
+		PrivateRDNSUpstreamConfig: private,
+		PrivateSubnets:            conf.PrivateSubnets,
+		// TODO(e.burkov):  Consider making configurable.
+		UsePrivateRDNS: true,
 		Fallbacks:      falls,
 		TrustedProxies: trusted,
-	}, strg, nil
+	}, ups.clients(), nil
 }
 
 // newListenAddrs creates a new list of UDP and TCP addresses from addrs.
@@ -158,14 +163,33 @@ func (svc *DNSService) closeBootstraps() (errs []error) {
 	return errs
 }
 
-// handleRequest is a [proxy.RequestHandler].
-func (svc *DNSService) handleRequest(p *proxy.Proxy, ctx *proxy.DNSContext) (err error) {
-	addr := svc.clientGetter.Address(ctx)
+// type check
+var _ proxy.BeforeRequestHandler = (*DNSService)(nil)
 
-	c := svc.clients.find(addr)
-	if c != nil {
-		ctx.CustomUpstreamConfig = c.conf
+// HandleBefore implements the [proxy.BeforeRequestHandler] interface for
+// *DNSService.
+func (svc *DNSService) HandleBefore(p *proxy.Proxy, dctx *proxy.DNSContext) (err error) {
+	// This is used to substitute the client's address in tests.
+	dctx.Addr = svc.clientGetter.Address(dctx)
+
+	// Check the address privateness because proxy does it before substitution.
+	// See TODO on [DNSService.clientGetter].
+	dctx.IsPrivateClient = svc.proxy.PrivateSubnets.Contains(dctx.Addr.Addr())
+
+	return nil
+}
+
+// handleRequest is a [proxy.RequestHandler].
+func (svc *DNSService) handleRequest(p *proxy.Proxy, dctx *proxy.DNSContext) (err error) {
+	if dctx.RequestedPrivateRDNS != (netip.Prefix{}) {
+		// Don't match client for private PTR request.
+		return p.Resolve(dctx)
 	}
 
-	return p.Resolve(ctx)
+	c := svc.clients.find(dctx.Addr.Addr())
+	if c != nil {
+		dctx.CustomUpstreamConfig = c.conf
+	}
+
+	return p.Resolve(dctx)
 }

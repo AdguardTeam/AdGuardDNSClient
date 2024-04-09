@@ -7,9 +7,12 @@ import (
 	"github.com/AdguardTeam/dnsproxy/proxy"
 )
 
-// newClients creates a list of clients from the given configurations.
-func newClients(configs map[netip.Prefix]*proxy.UpstreamConfig) (clients []*client) {
-	for cli, conf := range configs {
+// upstreamConfigs is a set of client-specific upstream configurations.
+type upstreamConfigs map[netip.Prefix]*proxy.UpstreamConfig
+
+// clients creates a list of clients from confs.
+func (confs upstreamConfigs) clients() (clients []*client) {
+	for cli, conf := range confs {
 		clients = append(clients, &client{
 			conf:   proxy.NewCustomUpstreamConfig(conf, false, 0, false),
 			prefix: cli,

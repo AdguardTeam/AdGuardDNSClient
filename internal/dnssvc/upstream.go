@@ -15,7 +15,7 @@ import (
 
 // UpstreamConfig is the configuration for DNS upstream servers.
 //
-// TODO(e.burkov):  Put the default groups into separate fields.
+// TODO(e.burkov):  Put the required groups into separate fields.
 type UpstreamConfig struct {
 	// Groups is the list of groups.
 	Groups []*UpstreamGroupConfig
@@ -29,7 +29,7 @@ type UpstreamConfig struct {
 func newUpstreams(
 	conf *UpstreamConfig,
 	boot upstream.Resolver,
-) (configs map[netip.Prefix]*proxy.UpstreamConfig, err error) {
+) (ups upstreamConfigs, private *proxy.UpstreamConfig, err error) {
 	defer func() { err = errors.Annotate(err, "creating upstreams: %w") }()
 
 	opts := &upstream.Options{
@@ -37,19 +37,55 @@ func newUpstreams(
 		Bootstrap: boot,
 	}
 
-	configs = map[netip.Prefix]*proxy.UpstreamConfig{}
+	private = &proxy.UpstreamConfig{}
+	ups = upstreamConfigs{
+		// Init default group.
+		netip.Prefix{}: &proxy.UpstreamConfig{},
+	}
 	upstreams := map[string]upstream.Upstream{}
 
 	var errs []error
 	for _, g := range conf.Groups {
-		err = g.addGroup(configs, upstreams, opts)
+		var u upstream.Upstream
+		u, err = newUpstreamOrCached(g.Address, upstreams, opts)
 		if err != nil {
-			err = fmt.Errorf("adding group %q: %w", g.Name, err)
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("group %q: %w", g.Name, err))
+
+			continue
+		}
+
+		switch g.Name {
+		case agdc.UpstreamGroupNameDefault:
+			ups[netip.Prefix{}].Upstreams = append(ups[netip.Prefix{}].Upstreams, u)
+		case agdc.UpstreamGroupNamePrivate:
+			private.Upstreams = append(private.Upstreams, u)
+		default:
+			g.addGroup(ups, u)
 		}
 	}
 
-	return configs, errors.Join(errs...)
+	return ups, private, errors.Join(errs...)
+}
+
+// newUpstreamOrCached creates a new upstream or returns the cached one from
+// addrToUps.
+func newUpstreamOrCached(
+	addr string,
+	addrToUps map[string]upstream.Upstream,
+	opts *upstream.Options,
+) (u upstream.Upstream, err error) {
+	u, ok := addrToUps[addr]
+	if !ok {
+		u, err = upstream.AddressToUpstream(addr, opts)
+		if err != nil {
+			// Don't wrap the error, because it's informative enough as is.
+			return nil, err
+		}
+
+		addrToUps[addr] = u
+	}
+
+	return u, nil
 }
 
 // UpstreamGroupConfig is the configuration for a DNS upstream group.
@@ -74,34 +110,8 @@ type MatchCriteria struct {
 	QuestionDomain string
 }
 
-// addGroup creates and puts the upstream from ugc into configs.  addrToUps is
-// used to avoid creating upstreams from the identical addresses.  opts are used
-// for creating upstreams.
-//
-// TODO(e.burkov):  Lowercase addrs.
-func (ugc *UpstreamGroupConfig) addGroup(
-	configs map[netip.Prefix]*proxy.UpstreamConfig,
-	addrToUps map[string]upstream.Upstream,
-	opts *upstream.Options,
-) (err error) {
-	u, ok := addrToUps[ugc.Address]
-	if !ok {
-		u, err = upstream.AddressToUpstream(ugc.Address, opts)
-		if err != nil {
-			return err
-		}
-
-		addrToUps[ugc.Address] = u
-	}
-
-	if ugc.Name == agdc.UpstreamGroupNameDefault {
-		configs[netip.Prefix{}] = &proxy.UpstreamConfig{
-			Upstreams: []upstream.Upstream{u},
-		}
-
-		return nil
-	}
-
+// addGroup adds u to the configuration of the corresponding client.
+func (ugc *UpstreamGroupConfig) addGroup(configs upstreamConfigs, u upstream.Upstream) {
 	for _, m := range ugc.Match {
 		conf := configs[m.Client]
 		if conf == nil {
@@ -109,29 +119,22 @@ func (ugc *UpstreamGroupConfig) addGroup(
 			configs[m.Client] = conf
 		}
 
-		addUpstream(conf, u, m.QuestionDomain)
+		domain := m.QuestionDomain
+		if domain == "" {
+			conf.Upstreams = append(conf.Upstreams, u)
+
+			continue
+		}
+
+		if conf.DomainReservedUpstreams == nil {
+			conf.DomainReservedUpstreams = map[string][]upstream.Upstream{}
+		}
+		if conf.SpecifiedDomainUpstreams == nil {
+			conf.SpecifiedDomainUpstreams = map[string][]upstream.Upstream{}
+		}
+
+		domain = dns.Fqdn(strings.ToLower(domain))
+		conf.DomainReservedUpstreams[domain] = append(conf.DomainReservedUpstreams[domain], u)
+		conf.SpecifiedDomainUpstreams[domain] = append(conf.SpecifiedDomainUpstreams[domain], u)
 	}
-
-	return nil
-}
-
-// addUpstream adds u to conf.  u is considered a domain-specific upstream, if
-// domain is not empty.
-func addUpstream(conf *proxy.UpstreamConfig, u upstream.Upstream, domain string) {
-	if domain == "" {
-		conf.Upstreams = append(conf.Upstreams, u)
-
-		return
-	}
-
-	if conf.DomainReservedUpstreams == nil {
-		conf.DomainReservedUpstreams = map[string][]upstream.Upstream{}
-	}
-	if conf.SpecifiedDomainUpstreams == nil {
-		conf.SpecifiedDomainUpstreams = map[string][]upstream.Upstream{}
-	}
-
-	domain = dns.Fqdn(strings.ToLower(domain))
-	conf.DomainReservedUpstreams[domain] = append(conf.DomainReservedUpstreams[domain], u)
-	conf.SpecifiedDomainUpstreams[domain] = append(conf.SpecifiedDomainUpstreams[domain], u)
 }

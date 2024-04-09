@@ -13,5 +13,8 @@ const (
 	// matches all requests and must appear in the configuration.
 	UpstreamGroupNameDefault UpstreamGroupName = "default"
 
-	// TODO(e.burkov):  Add UpstreamGroupNamePrivate.
+	// UpstreamGroupNamePrivate is the reserved name for an upstream group that
+	// matches private reverse DNS requests and must appear in the
+	// configuration.
+	UpstreamGroupNamePrivate UpstreamGroupName = "private"
 )

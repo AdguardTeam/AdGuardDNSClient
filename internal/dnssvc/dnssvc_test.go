@@ -66,14 +66,14 @@ func startLocalhostUpstream(t *testing.T, h dns.Handler) (addr *url.URL) {
 
 // testClientGetter is a mock implementation of [dnssvc.ClientGetter] for tests.
 type testClientGetter struct {
-	OnAddress func(dctx *proxy.DNSContext) (addr netip.Addr)
+	OnAddress func(dctx *proxy.DNSContext) (addr netip.AddrPort)
 }
 
 // type check
 var _ dnssvc.ClientGetter = (*testClientGetter)(nil)
 
 // Address implements the [dnssvc.ClientGetter] interface for *testClientGetter.
-func (cg *testClientGetter) Address(dctx *proxy.DNSContext) (addr netip.Addr) {
+func (cg *testClientGetter) Address(dctx *proxy.DNSContext) (addr netip.AddrPort) {
 	return cg.OnAddress(dctx)
 }
 
@@ -81,10 +81,22 @@ func (cg *testClientGetter) Address(dctx *proxy.DNSContext) (addr netip.Addr) {
 func TestDNSService(t *testing.T) {
 	t.Parallel()
 
+	// Declare domain names.
+
 	const (
 		testDomain    = "example.com"
 		testSubdomain = "test.example.com"
 	)
+
+	privateNets := netutil.SubnetSetFunc(netutil.IsLocallyServed)
+
+	privateAddr := netip.MustParseAddr("192.168.1.1")
+	require.True(t, privateNets.Contains(privateAddr))
+
+	privateARPADomain, err := netutil.IPToReversedAddr(privateAddr.AsSlice())
+	require.NoError(t, err)
+
+	// Create requests and responses.
 
 	commonReq := (&dns.Msg{}).SetQuestion(dns.Fqdn(testDomain), dns.TypeA)
 	commonReq.Id = 1
@@ -102,6 +114,17 @@ func TestDNSService(t *testing.T) {
 	subdomainCliSpecReq.Id = 4
 	subdomainCliSpecResp := (&dns.Msg{}).SetReply(subdomainCliSpecReq)
 
+	privateReq := (&dns.Msg{}).SetQuestion(dns.Fqdn(privateARPADomain), dns.TypePTR)
+	privateReq.Id = 5
+	privateResp := (&dns.Msg{}).SetReply(privateReq)
+
+	forbiddenReq := (&dns.Msg{}).SetQuestion(dns.Fqdn(privateARPADomain), dns.TypePTR)
+	forbiddenReq.Id = 6
+	forbiddenResp := (&dns.Msg{}).SetRcode(forbiddenReq, dns.RcodeNameError)
+	forbiddenResp.RecursionAvailable = true
+
+	// Create upstreams.
+
 	pt := testutil.PanicT{}
 	commonUps := func(w dns.ResponseWriter, _ *dns.Msg) {
 		require.NoError(pt, w.WriteMsg(commonResp))
@@ -115,35 +138,57 @@ func TestDNSService(t *testing.T) {
 	subdomainCliSpecUps := func(w dns.ResponseWriter, _ *dns.Msg) {
 		require.NoError(pt, w.WriteMsg(subdomainCliSpecResp))
 	}
+	privateUps := func(w dns.ResponseWriter, _ *dns.Msg) {
+		require.NoError(pt, w.WriteMsg(privateResp))
+	}
 
 	commonURL := startLocalhostUpstream(t, dns.HandlerFunc(commonUps)).String()
 	subdomainURL := startLocalhostUpstream(t, dns.HandlerFunc(subdomainUps)).String()
 	cliSpecURL := startLocalhostUpstream(t, dns.HandlerFunc(cliSpecUps)).String()
 	subdomainCliSpecURL := startLocalhostUpstream(t, dns.HandlerFunc(subdomainCliSpecUps)).String()
+	privateURL := startLocalhostUpstream(t, dns.HandlerFunc(privateUps)).String()
+
+	// Prepare clients.
 
 	cli1Addr := netip.MustParseAddr("1.2.3.4")
 	cli2Addr := netip.MustParseAddr("4.3.2.1")
 	cli2Pref := netip.PrefixFrom(cli2Addr, cli2Addr.BitLen())
 
+	privateCli := netip.MustParseAddr("192.168.1.2")
+	require.True(t, privateNets.Contains(privateCli))
+
+	externalCli := netip.MustParseAddr("123.123.123.123")
+	require.False(t, privateNets.Contains(externalCli))
+
 	cliGetter := &testClientGetter{
-		OnAddress: func(dctx *proxy.DNSContext) (addr netip.Addr) {
+		OnAddress: func(dctx *proxy.DNSContext) (addr netip.AddrPort) {
 			switch dctx.Req.Id {
 			case commonReq.Id, subdomainReq.Id:
-				return cli1Addr
+				return netip.AddrPortFrom(cli1Addr, 1)
 			case cliSpecReq.Id, subdomainCliSpecReq.Id:
-				return cli2Addr
+				return netip.AddrPortFrom(cli2Addr, 1)
+			case privateReq.Id:
+				return netip.AddrPortFrom(privateCli, 1)
+			case forbiddenReq.Id:
+				return netip.AddrPortFrom(externalCli, 1)
 			default:
 				panic("unexpected request")
 			}
 		},
 	}
 
+	// Create and start the service.
+
 	svc, err := dnssvc.New(&dnssvc.Config{
-		Bootstrap: &dnssvc.BootstrapConfig{},
+		PrivateSubnets: privateNets,
+		Bootstrap:      &dnssvc.BootstrapConfig{},
 		Upstreams: &dnssvc.UpstreamConfig{
 			Groups: []*dnssvc.UpstreamGroupConfig{{
 				Name:    agdc.UpstreamGroupNameDefault,
 				Address: commonURL,
+			}, {
+				Name:    agdc.UpstreamGroupNamePrivate,
+				Address: privateURL,
 			}, {
 				Name:    "domain-group",
 				Address: subdomainURL,
@@ -184,6 +229,8 @@ func TestDNSService(t *testing.T) {
 	require.NoError(t, err)
 	testutil.CleanupAndRequireSuccess(t, func() (err error) { return svc.Shutdown(ctx) })
 
+	// Test.
+
 	tcpAddr := svc.Addr(proxy.ProtoTCP).String()
 
 	cli := &dns.Client{
@@ -211,6 +258,14 @@ func TestDNSService(t *testing.T) {
 		req:      subdomainCliSpecReq,
 		wantResp: subdomainCliSpecResp,
 		name:     "domain_client_match_success",
+	}, {
+		req:      privateReq,
+		wantResp: privateResp,
+		name:     "private_success",
+	}, {
+		req:      forbiddenReq,
+		wantResp: forbiddenResp,
+		name:     "private_forbidden",
 	}}
 
 	for _, tc := range testCases {
