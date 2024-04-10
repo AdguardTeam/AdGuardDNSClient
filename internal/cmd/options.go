@@ -14,10 +14,17 @@ type options struct {
 	help bool
 }
 
-// Exit status constants.
 const (
-	statusSuccess       = 0
-	statusError         = 1
+	// statusSuccess is returned by AdGuardDNSClient when the program exits due
+	// to an expected scenario.
+	statusSuccess = 0
+
+	// statusError is returned by AdGuardDNSClient when the program exits due to
+	// an error in configuration or logic.
+	statusError = 1
+
+	// statusArgumentError is returned by AdGuardDNSClient when the program
+	// exits due to invalid command-line argument value.
 	statusArgumentError = 2
 )
 

@@ -29,13 +29,13 @@ To run the server as is:
     cp ./config.dist.yaml ./config.yaml
     ```
 
-2. Build the `AdGuardDNSClient` binary:
+1. Build the `AdGuardDNSClient` binary:
 
     ```sh
     make go-build
     ```
 
-3. Run it:
+1. Run it:
 
     ```sh
     ./AdGuardDNSClient
@@ -57,6 +57,17 @@ The YAML configuration file is described in the [`doc/configuration.md`] file.
 Also, there is a sample configuration file `config.dist.yaml`.
 
 [`doc/configuration.md`]: doc/configuration.md
+
+## <a href="#exit-codes" id="exit-codes" name="exit-codes">Exit codes</a>
+
+There are a bunch of different error codes that may appear under different error
+conditions:
+
+- `0`: AdGuardDNSClient successfully finished and exited, no errors.
+
+- `1`: Internal error, most probably misconfiguration.
+
+- `2`: Bad command-line argument.
 
 <!-- TODO(e.burkov): Add a few paragraphs about checking the operability. -->
 

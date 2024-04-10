@@ -109,5 +109,9 @@ func shutdown(ctx context.Context, l *slog.Logger, svcs ...service.Interface) {
 			"shutting down",
 			"error", err,
 		)
+
+		os.Exit(statusError)
 	}
+
+	os.Exit(statusSuccess)
 }
