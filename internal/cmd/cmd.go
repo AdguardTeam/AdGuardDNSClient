@@ -24,6 +24,12 @@ const logFormat = slogutil.FormatAdGuardLegacy
 // Main is the entrypoint of AdGuardDNSClient.  Main may accept arguments, such
 // as embedded assets and command-line arguments.
 func Main() {
+	opts, err := parseOptions()
+	exitCode, needsExit := processOptions(opts, err)
+	if needsExit {
+		os.Exit(exitCode)
+	}
+
 	conf, err := parseConfig(defaultConfigPath)
 	check(err)
 
@@ -36,11 +42,12 @@ func Main() {
 	logFmt, _ := slogutil.NewFormat(logFormat)
 
 	// TODO(e.burkov):  Configure timestamp and output.
+	isVerbose := opts.verbose || conf.Log.Verbose
 	l := slogutil.New(&slogutil.Config{
 		Format:  logFmt,
-		Verbose: conf.Log.Verbose,
+		Verbose: isVerbose,
 	})
-	if conf.Log.Verbose {
+	if isVerbose {
 		log.SetLevel(log.DEBUG)
 	}
 
@@ -55,7 +62,7 @@ func Main() {
 		"branch", version.Branch(),
 		"commit_time", version.CommitTime(),
 		"race", version.RaceEnabled,
-		"verbose", conf.Log.Verbose,
+		"verbose", isVerbose,
 	)
 
 	// DNS service
