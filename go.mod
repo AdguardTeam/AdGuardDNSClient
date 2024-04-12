@@ -4,7 +4,7 @@ go 1.22.2
 
 require (
 	github.com/AdguardTeam/dnsproxy v0.69.2
-	github.com/AdguardTeam/golibs v0.23.1
+	github.com/AdguardTeam/golibs v0.23.2
 	github.com/c2h5oh/datasize v0.0.0-20231215233829-aa82cc1e6500
 	github.com/miekg/dns v1.1.58
 	github.com/stretchr/testify v1.9.0

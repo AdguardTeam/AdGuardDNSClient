@@ -21,7 +21,9 @@ const (
 
 	// statusError is returned by AdGuardDNSClient when the program exits due to
 	// an error in configuration or logic.
-	statusError = 1
+	//
+	// TODO(e.burkov):  Use.
+	// statusError = 1
 
 	// statusArgumentError is returned by AdGuardDNSClient when the program
 	// exits due to invalid command-line argument value.
