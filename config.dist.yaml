@@ -79,8 +79,6 @@ debug:
         enabled: false
 # Logging settings.
 log:
-    # Path to the log file.  Empty string stands for using stdout.
-    file: 'C:\Users\Admin\Logs\dnslog.txt'
     # If true, the log file will be much more informative.
     verbose: false
 # Schema version of this config file.  This is bumped each time the config file

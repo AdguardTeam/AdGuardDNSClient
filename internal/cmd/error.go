@@ -18,6 +18,9 @@ const (
 
 	// errMustBeUnique signals that a value must be unique.
 	errMustBeUnique errors.Error = "must be unique"
+
+	// errUnknownAction signals that an unknown service action was requested.
+	errUnknownAction errors.Error = "unknown action"
 )
 
 // validator is a configuration object that is able to validate itself.
@@ -29,11 +32,4 @@ type validator interface {
 	// validate should return an error if the object considers itself invalid.
 	// The error should contains the configuration's field.
 	validate() (err error)
-}
-
-// check is a simple error-checking helper.  It must only be used within Main.
-func check(err error) {
-	if err != nil {
-		panic(err)
-	}
 }

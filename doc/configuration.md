@@ -196,11 +196,6 @@ the following properties:
 
 The `log` object configures the logging.  It has the following properties:
 
- *  <a href="#log-file" id="log-file" name="log-file">`file`</a>:
-    The file to write logs to.  If empty, logs are written to `stdout`.
-
-    **Example:** `'C:\Users\Admin\Logs\dnslog.txt'`.
-
  *  <a href="#log-verbose" id="log-verbose" name="log-verbose">`verbose`</a>:
     If the log should be more informative.
 

@@ -33,6 +33,8 @@ const defaultConfigPath = "config.yaml"
 
 // parseConfig parses the YAML configuration file located at path.
 func parseConfig(path string) (conf *configuration, err error) {
+	defer func() { err = errors.Annotate(err, "parsing configuration: %w") }()
+
 	// #nosec G304 -- Trust the path to the configuration file that is given
 	// in the constant.
 	f, err := os.Open(path)

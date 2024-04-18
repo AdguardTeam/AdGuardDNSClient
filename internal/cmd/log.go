@@ -1,11 +1,16 @@
 package cmd
 
-import "github.com/AdguardTeam/golibs/errors"
+import (
+	"log/slog"
+
+	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/log"
+	"github.com/AdguardTeam/golibs/logutil/slogutil"
+)
 
 // logConfig is the configuration for logging.
 type logConfig struct {
-	// File is the file to write logs to.  If empty, logs are written to stdout.
-	File string `yaml:"file"`
+	// TODO(e.burkov):  Add logging to file if needed.
 
 	// Verbose specifies whether to log extra information.
 	Verbose bool `yaml:"verbose"`
@@ -22,7 +27,28 @@ func (c *logConfig) validate() (err error) {
 		return errNoValue
 	}
 
-	// TODO(e.burkov):  Check the file path.
-
 	return nil
+}
+
+// logger creates a new logger with the specified verbosity.
+func logger(isVerbose bool) (l *slog.Logger) {
+	// logFormat is the format of the log messages.
+	//
+	// TODO(e.burkov):  Use [log/slog] in [dnsproxy] and make it configurable.
+	//
+	// TODO(e.burkov):  Add unmarshalling to [slogutil.Format].
+	const logFormat slogutil.Format = slogutil.FormatAdGuardLegacy
+
+	// TODO(e.burkov):  Configure timestamp.
+	l = slogutil.New(&slogutil.Config{
+		Format:  logFormat,
+		Verbose: isVerbose,
+	})
+	if isVerbose {
+		log.SetLevel(log.DEBUG)
+	}
+
+	// TODO(e.burkov): Configure the service logger.
+
+	return l
 }

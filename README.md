@@ -45,9 +45,20 @@ To run the server as is:
 
 Any option overrides the corresponding value provided by configuration file.
 
+### <a href="#opts-service" id="opts-service" name="opts-service">Service</a>
+
+Option `-s <value>` specifies the OS service action.  Possible values
+are:
+
+- `install`: installs AdGuard DNS Client as a service;
+- `uninstall`: uninstalls AdGuard DNS Client service;
+- `start`: starts the installed AdGuard DNS Client service;
+- `stop`: stops the running AdGuard DNS Client;
+- `restart`: restarts the running AdGuard DNS Client service.
+
 ### <a href="#opts-verbose" id="opts-verbose" name="opts-verbose">Verbose</a>
 
-   Option <code>-v</code> enables the verbose log output.
+Option `-v` enables the verbose log output.
 
 ## <a href="#conf" id="conf" name="conf">Configuration</a>
 
@@ -67,7 +78,7 @@ conditions:
 
 - `1`: Internal error, most probably misconfiguration.
 
-- `2`: Bad command-line argument.
+- `2`: Bad command-line argument or its value.
 
 <!-- TODO(e.burkov): Add a few paragraphs about checking the operability. -->
 
