@@ -35,11 +35,11 @@ const defaultConfigPath = "config.yaml"
 func parseConfig(path string) (conf *configuration, err error) {
 	defer func() { err = errors.Annotate(err, "parsing configuration: %w") }()
 
-	// #nosec G304 -- Trust the path to the configuration file that is given
-	// in the constant.
+	// #nosec G304 -- Trust the path to the configuration file that is currently
+	// expected to be in the same directory as the binary.
 	f, err := os.Open(path)
 	if err != nil {
-		// Don't wrap the error since it's informative enough as is.
+		// Don't wrap the error since there is already an annotation deferred.
 		return nil, err
 	}
 	defer func() { err = errors.WithDeferred(err, f.Close()) }()
@@ -85,6 +85,8 @@ func (c *configuration) validate() (err error) {
 }
 
 // schemaVersion is the type for the configuration structure revision.
+//
+// TODO(e.burkov):  Move to configmigrate package.
 type schemaVersion uint
 
 // currentSchemaVersion is the current version of the configuration structure.

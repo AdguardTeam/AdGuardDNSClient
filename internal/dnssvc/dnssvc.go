@@ -106,10 +106,9 @@ func newProxyConfig(
 		UpstreamConfig:            general,
 		PrivateRDNSUpstreamConfig: private,
 		PrivateSubnets:            conf.PrivateSubnets,
-		// TODO(e.burkov):  Consider making configurable.
-		UsePrivateRDNS: true,
-		Fallbacks:      falls,
-		TrustedProxies: trusted,
+		UsePrivateRDNS:            private != nil,
+		Fallbacks:                 falls,
+		TrustedProxies:            trusted,
 	}, ups.clients(), nil
 }
 

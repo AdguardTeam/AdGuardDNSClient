@@ -109,8 +109,14 @@ func (s matchSet) addMatch(name agdc.UpstreamGroupName, m *upstreamMatchConfig) 
 type upstreamGroupsConfig map[agdc.UpstreamGroupName]*upstreamGroupConfig
 
 // requiredGroups is the list of groups that must be present in a valid
-// [upstreamGroupsConfig].  Those should also have no match criteria.
+// [upstreamGroupsConfig].
 var requiredGroups = []agdc.UpstreamGroupName{
+	agdc.UpstreamGroupNameDefault,
+}
+
+// predefinedGroups is the list of groups that must have no match criteria in a
+// valid [upstreamGroupsConfig].
+var predefinedGroups = []agdc.UpstreamGroupName{
 	agdc.UpstreamGroupNameDefault,
 	agdc.UpstreamGroupNamePrivate,
 }
@@ -144,8 +150,8 @@ func (c upstreamGroupsConfig) validateGroups() (errs []error) {
 	ms := matchSet{}
 	mapsutil.SortedRange(c, func(name agdc.UpstreamGroupName, g *upstreamGroupConfig) (cont bool) {
 		var err error
-		if slices.Contains(requiredGroups, name) {
-			err = g.validateAsRequired()
+		if slices.Contains(predefinedGroups, name) {
+			err = g.validateAsPredefined()
 		} else {
 			err = g.validateAsCustom(ms, name)
 		}
@@ -169,9 +175,9 @@ type upstreamGroupConfig struct {
 	Match []*upstreamMatchConfig `yaml:"match"`
 }
 
-// validateAsRequired returns an error if c is not a valid required group
-// configuration.
-func (c *upstreamGroupConfig) validateAsRequired() (err error) {
+// validateAsPredefined returns an error if c is not a valid predefined group
+// configuration that should have no match criteria.
+func (c *upstreamGroupConfig) validateAsPredefined() (err error) {
 	if c == nil {
 		return errNoValue
 	}
@@ -192,7 +198,7 @@ func (c *upstreamGroupConfig) validateAsRequired() (err error) {
 }
 
 // validateAsCustom returns an error if c is not a valid custom group
-// configuration for group named n.
+// configuration for group named n within the set s.
 func (c *upstreamGroupConfig) validateAsCustom(s matchSet, n agdc.UpstreamGroupName) (err error) {
 	if c == nil {
 		return errNoValue

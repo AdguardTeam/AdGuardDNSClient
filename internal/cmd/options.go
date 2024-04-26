@@ -71,7 +71,7 @@ func processOptions(opts *options, parseErr error) (svc osservice.Service, exitC
 		return nil, osutil.ExitCodeSuccess
 	}
 
-	svc, err := newDefaultService(opts)
+	svc, confPath, err := newDefaultService(opts)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 
@@ -79,7 +79,7 @@ func processOptions(opts *options, parseErr error) (svc osservice.Service, exitC
 	}
 
 	if opts.serviceAction != "" {
-		err = control(svc, opts.serviceAction)
+		err = control(svc, confPath, opts.serviceAction)
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, err)
 

@@ -24,8 +24,9 @@ type UpstreamConfig struct {
 	Timeout time.Duration
 }
 
-// newUpstreams converts conf to a [proxy.UpstreamConfig], building it from the
-// groups.
+// newUpstreams builds the general upstream configuration, client-specific ones,
+// and the private one, if any, from conf.  boot bootstraps the upstreams'
+// domain names.
 func newUpstreams(
 	conf *UpstreamConfig,
 	boot upstream.Resolver,
@@ -36,8 +37,6 @@ func newUpstreams(
 		Timeout:   conf.Timeout,
 		Bootstrap: boot,
 	}
-
-	private = &proxy.UpstreamConfig{}
 	ups = upstreamConfigs{
 		// Init default group.
 		netip.Prefix{}: &proxy.UpstreamConfig{},
@@ -58,6 +57,9 @@ func newUpstreams(
 		case agdc.UpstreamGroupNameDefault:
 			ups[netip.Prefix{}].Upstreams = append(ups[netip.Prefix{}].Upstreams, u)
 		case agdc.UpstreamGroupNamePrivate:
+			if private == nil {
+				private = &proxy.UpstreamConfig{}
+			}
 			private.Upstreams = append(private.Upstreams, u)
 		default:
 			g.addGroup(ups, u)

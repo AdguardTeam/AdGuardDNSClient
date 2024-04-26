@@ -17,10 +17,10 @@ import (
 
 // newDefaultService creates a new [osservice.Service] instance for the current
 // system according to opts.
-func newDefaultService(opts *options) (svc osservice.Service, err error) {
+func newDefaultService(opts *options) (svc osservice.Service, confPath string, err error) {
 	sys := osservice.ChosenSystem()
 	if sys == nil {
-		return nil, errors.ErrUnsupported
+		return nil, "", errors.ErrUnsupported
 	}
 
 	// TODO(e.burkov):  Use -c command-line flag to specify the configuration
@@ -28,27 +28,29 @@ func newDefaultService(opts *options) (svc osservice.Service, err error) {
 
 	execPath, err := os.Executable()
 	if err != nil {
-		return nil, fmt.Errorf("getting executable path: %w", err)
+		return nil, "", fmt.Errorf("getting executable path: %w", err)
 	}
 
 	absExecPath, err := filepath.Abs(execPath)
 	if err != nil {
-		return nil, fmt.Errorf("getting absolute executable path: %w", err)
+		return nil, "", fmt.Errorf("getting absolute executable path: %w", err)
 	}
 
+	confPath = filepath.Join(filepath.Dir(absExecPath), defaultConfigPath)
+
 	defaulSvc := &defaultService{
-		opts:    opts,
-		done:    make(chan struct{}),
-		errCh:   make(chan error),
-		workDir: filepath.Dir(absExecPath),
+		opts:     opts,
+		done:     make(chan struct{}),
+		errCh:    make(chan error),
+		confPath: confPath,
 	}
 
 	svc, err = sys.New(defaulSvc, newServiceConfig())
 	if err != nil {
-		return nil, fmt.Errorf("creating service: %w", err)
+		return nil, confPath, fmt.Errorf("creating service: %w", err)
 	}
 
-	return svc, nil
+	return svc, confPath, nil
 }
 
 // newServiceConfig creates a configuration that the OS service manager uses to
@@ -99,7 +101,7 @@ func (a serviceAction) String() (s string) { return string(a) }
 
 // control performs the specified service action.  It mirrors the service logic
 // from [service.Control], but returns better errors.
-func control(svc osservice.Service, action serviceAction) (err error) {
+func control(svc osservice.Service, confPath string, action serviceAction) (err error) {
 	defer func() { err = errors.Annotate(err, "performing %q: %w", action) }()
 
 	switch action {
@@ -110,6 +112,12 @@ func control(svc osservice.Service, action serviceAction) (err error) {
 	case serviceActionRestart:
 		return svc.Restart()
 	case serviceActionInstall:
+		err = writeDefaultConfig(svc, confPath)
+		if err != nil {
+			// Don't wrap the error since it's informative enough as is.
+			return err
+		}
+
 		return svc.Install()
 	case serviceActionUninstall:
 		return svc.Uninstall()
@@ -121,10 +129,10 @@ func control(svc osservice.Service, action serviceAction) (err error) {
 // defaultService is the implementation of the [osservice.Interface] interface
 // for AdGuardDNSClient.
 type defaultService struct {
-	opts    *options
-	done    chan struct{}
-	errCh   chan error
-	workDir string
+	opts     *options
+	done     chan struct{}
+	errCh    chan error
+	confPath string
 }
 
 // type check
@@ -132,7 +140,7 @@ var _ osservice.Interface = (*defaultService)(nil)
 
 // Start implements the [osservice.Interface] interface for [*defaultService].
 func (svc *defaultService) Start(ossvc osservice.Service) (err error) {
-	conf, err := parseConfig(filepath.Join(svc.workDir, defaultConfigPath))
+	conf, err := parseConfig(svc.confPath)
 	if err != nil {
 		// Don't wrap the error, since it's informative enough as is.
 		return err

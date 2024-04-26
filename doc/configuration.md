@@ -120,8 +120,8 @@ following properties:
 
             **Example:** `'192.0.2.0/24'`.
 
-        Note, that properties specified within a single entry are combined with a
-        logical *AND*.  Entries are combined with a logical *OR*.
+        Note, that properties specified within a single entry are combined with
+        a logical *AND*.  Entries are combined with a logical *OR*.
 
         **Property example:**
 
@@ -133,10 +133,16 @@ following properties:
           - client: '1.2.3.4'
         ```
 
-    Note, that `groups` should contain an entry named `default`, and an entry
-    named `private`, both should have no `match` property.  The `default` group
-    will be used when there are no matches among other groups.  The `private`
-    group will be used to resolve the PTR requests for the private IP addresses.
+    Note that `groups` should contain at least a single entry named `default`,
+    and optionally a single entry named `private`, both should have no `match`
+    property.
+
+    The `default` group will be used when there are no matches among other
+    groups.
+
+    The `private` group will be used to resolve the PTR requests for the private
+    IP addresses.  Such queries will be answered with `NXDOMAIN` if no `private`
+    group is defined.
 
  *  <a href="#dns-upstream-timeout" id="dns-upstream-timeout" name="dns-upstream-timeout">`timeout`</a>:
     The timeout for upstream DNS requests.
