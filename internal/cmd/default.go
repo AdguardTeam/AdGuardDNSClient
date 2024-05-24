@@ -116,6 +116,9 @@ func newDefaultDNSConfig(l osservice.Logger) (c *dnsConfig, err error) {
 	upstreamGroups := upstreamGroupsConfig{
 		agdc.UpstreamGroupNameDefault: &upstreamGroupConfig{
 			Address: "https://unfiltered.adguard-dns.com/dns-query",
+			// TODO(e.burkov):  It marshals into an empty slice, but should not
+			// appear in the configuration file at all.
+			Match: nil,
 		},
 	}
 	fallbackServers := urlConfigs{{
@@ -172,15 +175,8 @@ func newDefaultConfig(l osservice.Logger) (c *configuration, err error) {
 
 // writeDefaultConfig writes the default configuration to the file at path.  If
 // the file at path already exists, it does nothing.
-func writeDefaultConfig(svc osservice.Service, path string) (err error) {
+func writeDefaultConfig(l osservice.Logger, path string) (err error) {
 	defer func() { err = errors.Annotate(err, "writing default configuration: %w") }()
-
-	// TODO(e.burkov):  Use common logger.
-	var l osservice.Logger
-	l, err = svc.Logger(nil)
-	if err != nil {
-		return fmt.Errorf("getting logger: %w", err)
-	}
 
 	// #nosec G304 -- Trust the path to the configuration file that is currently
 	// expected to be in the same directory as the binary.

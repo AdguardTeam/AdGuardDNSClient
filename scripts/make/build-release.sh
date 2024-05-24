@@ -131,6 +131,7 @@ darwin   amd64
 linux    386
 linux    amd64
 linux    arm64
+windows  386
 windows  amd64
 windows  arm64"
 readonly platforms
@@ -138,6 +139,12 @@ readonly platforms
 # Function sign signs the specified build as intended by the target operating
 # system.
 sign() {
+	# Only sign if needed.
+	if [ "$sign" -ne '1' ]
+	then
+		return
+	fi
+
 	# Get the arguments.  Here and below, use the "sign_" prefix for all
 	# variables local to function sign.
 	sign_os="$1"
@@ -167,6 +174,44 @@ sign() {
 		;
 
 	mv "$signed_bin_path" "$sign_bin_path"
+}
+
+# Function build_msi creates and signs 
+build_msi() {
+	# Get the arguments.  Here and below, use the "msi_" prefix for all
+	# variables local to function build_msi.
+	msi_exe_arch="${1:?please set build architecture}"
+	msi_out="${2:?please set installer output}"
+	msi_exe="${3:?please set path to executable}"
+
+	case "$msi_exe_arch"
+	in
+	('386')
+		msi_arch='x86'
+		;;
+	('amd64')
+		msi_arch='x64'
+		;;
+	(*)
+		log "${msi_exe_arch} is not supported"
+
+		return 1
+		;;
+	esac
+
+	# TODO(e.burkov):  Configure another variables here.
+	msi_version="${version#v}"
+
+	wixl\
+		-D "ProductVersion=${msi_version}"\
+		-D "BuildOutput=${msi_exe}"\
+		-a "$msi_arch"\
+		-o "$msi_out"\
+		./scripts/make/msi-schema.wxs
+
+	log "$msi_out"
+
+	sign 'windows' "$msi_out"
 }
 
 # Function build builds the release for one platform.  It builds a binary and an
@@ -202,11 +247,7 @@ build() {
 
 	log "$build_output"
 
-	# Sign the binary if needed.
-	if [ "$sign" -eq '1' ]
-	then
-		sign "$build_os" "$build_output"
-	fi
+	sign "$build_os" "$build_output"
 
 	# Prepare the build directory for archiving.
 	#
@@ -217,19 +258,37 @@ build() {
 	# tarballs.
 	case "$build_os"
 	in
-	('darwin'|'windows')
+	('windows')
+		# TODO(e.burkov):  Consider building only MSI installers for Windows.
+
+		# TODO(e.burkov):  Add ARM-compatible MSI installer, when
+		# https://gitlab.gnome.org/GNOME/msitools/-/issues/61 is resolved.
+		# TODO(e.burkov):  Add 386-compatible builds, see AGDNS-2154.
+		if [ "$build_arch" = "amd64" ]
+		then
+			build_msi "$build_arch" "./${dist}/${build_ar}.msi" "$build_output"
+		fi
+
+		build_archive="./${dist}/${build_ar}.zip"
+
+		# TODO(a.garipov): Find an option similar to the -C option of tar for
+		# zip.
+		( cd "${dist}/${1}" && zip -9 -q -r "../../${build_archive}" "./AdGuardDNSClient" )
+		log "$build_archive"
+		;;
+	('darwin')
 		build_archive="./${dist}/${build_ar}.zip"
 		# TODO(a.garipov): Find an option similar to the -C option of tar for
 		# zip.
 		( cd "${dist}/${1}" && zip -9 -q -r "../../${build_archive}" "./AdGuardDNSClient" )
+		log "$build_archive"
 		;;
 	(*)
 		build_archive="./${dist}/${build_ar}.tar.gz"
 		tar -C "./${dist}/${1}" -c -f - "./AdGuardDNSClient" | gzip -9 - > "$build_archive"
+		log "$build_archive"
 		;;
 	esac
-
-	log "$build_archive"
 }
 
 log "starting builds"

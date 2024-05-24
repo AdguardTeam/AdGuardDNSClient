@@ -58,7 +58,7 @@ dns:
                 address: 'tls://efgh5678.d.adguard-dns.com'
                 # Matches 192.168.2.1, 192.168.2.2, etc.
                 match:
-                  - client: '192.168.2.0/24'
+                  - client: '192.168.3.0/24'
         # Timeout for all outgoing upstream requests and incoming responses.
         timeout: 2s
     # DNS fallback settings.

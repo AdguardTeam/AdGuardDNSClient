@@ -104,15 +104,31 @@ func (a serviceAction) String() (s string) { return string(a) }
 func control(svc osservice.Service, confPath string, action serviceAction) (err error) {
 	defer func() { err = errors.Annotate(err, "performing %q: %w", action) }()
 
+	// TODO(e.burkov):  Use common logger.
+	var l osservice.Logger
+	l, err = svc.Logger(nil)
+	if err != nil {
+		return fmt.Errorf("getting logger: %w", err)
+	}
+
 	switch action {
 	case serviceActionStart:
 		return svc.Start()
 	case serviceActionStop:
-		return svc.Stop()
+		err = svc.Stop()
+		if err != nil {
+			// Just log and error instead of returning it, as this error is only
+			// logged anyway, but could cause the MSI installation to fail.
+			//
+			// TODO(e.burkov):  Find a way to handle this error on the MSI side.
+			_ = l.Errorf("performing %q: %s", action, err)
+		}
+
+		return nil
 	case serviceActionRestart:
 		return svc.Restart()
 	case serviceActionInstall:
-		err = writeDefaultConfig(svc, confPath)
+		err = writeDefaultConfig(l, confPath)
 		if err != nil {
 			// Don't wrap the error since it's informative enough as is.
 			return err
