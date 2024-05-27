@@ -37,7 +37,7 @@ ProductCode="{941C5942-5C4F-4FEC-86DF-B2FAD4AB5448}" ?>
 <?define
 ProductName="AdGuard DNS Client" ?>
 <?define
-Manufacturer="AdGuard Software Limited" ?>
+Manufacturer="Adguard Software Limited" ?>
 <?define
 InstallerDescription="AdGuard DNS Client Installer" ?>
 <!--
