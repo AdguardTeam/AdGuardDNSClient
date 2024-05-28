@@ -62,7 +62,7 @@ func filterInterfaceAddrs(
 // isListenable returns true if the address is not a link-local unicast address
 // and is served locally.
 func isListenable(addr netip.Addr) (ok bool) {
-	return !addr.IsLinkLocalUnicast() && netutil.IsLocallyServed(addr)
+	return addr.IsPrivate() || addr.IsLoopback()
 }
 
 // allListenableAddresses returns all the addresses of network interfaces that
