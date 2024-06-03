@@ -176,7 +176,7 @@ sign() {
 	mv "$signed_bin_path" "$sign_bin_path"
 }
 
-# Function build_msi creates and signs 
+# Function build_msi creates and signs an MSI package for provided architecture.
 build_msi() {
 	# Get the arguments.  Here and below, use the "msi_" prefix for all
 	# variables local to function build_msi.
@@ -205,6 +205,7 @@ build_msi() {
 	wixl\
 		-D "ProductVersion=${msi_version}"\
 		-D "BuildOutput=${msi_exe}"\
+		-D "Platform=${msi_arch}"\
 		-a "$msi_arch"\
 		-o "$msi_out"\
 		./scripts/make/msi-schema.wxs
@@ -263,8 +264,7 @@ build() {
 
 		# TODO(e.burkov):  Add ARM-compatible MSI installer, when
 		# https://gitlab.gnome.org/GNOME/msitools/-/issues/61 is resolved.
-		# TODO(e.burkov):  Add 386-compatible builds, see AGDNS-2154.
-		if [ "$build_arch" = "amd64" ]
+		if [ "$build_arch" != "arm64" ]
 		then
 			build_msi "$build_arch" "./${dist}/${build_ar}.msi" "$build_output"
 		fi

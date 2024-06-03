@@ -128,6 +128,21 @@
                   PARALLELISM=1\
                   VERBOSE=2\
                   build-release
+
+              # Build windows/386 separately to avoid building it for another
+              # OSes.
+              #
+              # TODO(e.burkov):  Use a separate artifact stage for QA builds.
+              make\
+                  ARCH="386"\
+                  OS="windows"\
+                  CHANNEL=${bamboo.channel}\
+                  GPG_KEY_PASSPHRASE=${bamboo.gpgPassword}\
+                  DEPLOY_SCRIPT_PATH="../bamboo-deploy-publisher/deploy.sh"\
+                  SIGNER_API_KEY="${bamboo.adguardDnsClientWinSignerSecretApiKey}"\
+                  PARALLELISM=1\
+                  VERBOSE=2\
+                  build-release
     'artifacts':
     -
         'name': 'AdGuardDNSClient_windows_amd64'
@@ -137,6 +152,11 @@
     -
         'name': 'AdGuardDNSClient_windows_amd64_msi'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.msi'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_386_msi'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_386.msi'
         'shared': true
         'required': true
     -
@@ -160,29 +180,6 @@
     'link-to-jira': true
 
 'branch-overrides':
--
-    # Run only the "Lint" and "Test" stages in any branch save for "master".
-    '^((?!master).)*$':
-        'stages':
-        -
-            'Lint':
-                'manual': false
-                'final': false
-                'jobs':
-                - 'Lint'
-        -
-            'Test':
-                'manual': false
-                'final': false
-                'jobs':
-                - 'Test'
-        # TODO(e.burkov):  Use a separate artifact stage for QA builds.
-        -
-            'Artifact':
-                'manual': false
-                'final': false
-                'jobs':
-                - 'Artifact'
 -
     # rc-vX.Y.Z branches are the release candidate branches. They are created
     # from the release branch and are used to build the release candidate

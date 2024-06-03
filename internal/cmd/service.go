@@ -115,16 +115,7 @@ func control(svc osservice.Service, confPath string, action serviceAction) (err 
 	case serviceActionStart:
 		return svc.Start()
 	case serviceActionStop:
-		err = svc.Stop()
-		if err != nil {
-			// Just log and error instead of returning it, as this error is only
-			// logged anyway, but could cause the MSI installation to fail.
-			//
-			// TODO(e.burkov):  Find a way to handle this error on the MSI side.
-			_ = l.Errorf("performing %q: %s", action, err)
-		}
-
-		return nil
+		return svc.Stop()
 	case serviceActionRestart:
 		return svc.Restart()
 	case serviceActionInstall:

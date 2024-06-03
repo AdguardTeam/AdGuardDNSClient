@@ -26,11 +26,30 @@ ExecutableGUID="{788DF3FB-2EC9-48FD-9F69-D6385B319BCA}" ?>
 -->
 <?define
 PackageCode="*" ?>
+<?if
+$(var.Platform) = x64 ?>
 <!--
-  Use {941C5942-5C4F-4FEC-86DF-B2FAD4AB5448} for versions <= 0.1.0
+  Use {941C5942-5C4F-4FEC-86DF-B2FAD4AB5448} for versions <= 0.1.0 (x64)
 -->
 <?define
 ProductCode="{941C5942-5C4F-4FEC-86DF-B2FAD4AB5448}" ?>
+<?define
+PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+<?define
+ComponentWin64="yes" ?>
+<?else
+?>
+<!--
+  Use {1B0E61B1-58F9-42F7-86A7-7F7CF5104C0F} for versions <= 0.1.0 (x86)
+-->
+<?define
+ProductCode="{1B0E61B1-58F9-42F7-86A7-7F7CF5104C0F}" ?>
+<?define
+PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+<?define
+ComponentWin64="no" ?>
+<?endif
+?>
 <!--
   Define some human-readable information about the product.
 -->
@@ -52,6 +71,9 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
   <!--
     Describe a Product, since this is an MSI distribution, see
     https://wixtoolset.org/docs/v3/xsd/wix/product.
+
+    TODO(e.burkov):  Add Platform attribute when
+    https://gitlab.gnome.org/GNOME/msitools/-/issues/46 is resolved.
   -->
   <Product
       Id="$(var.ProductCode)"
@@ -63,16 +85,17 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
     >
     <!--
       Describe a package, see https://wixtoolset.org/docs/v3/xsd/wix/package.
+      Don't set InstallScope="perMachine" since it causes issues with finding
+      installed products on x86.
     -->
     <Package
         Id="$(var.PackageCode)"
-        InstallerVersion="200"
+        InstallerVersion="500"
         Description="$(var.InstallerDescription)"
         Compressed="yes"
         Keywords="Installer"
         Manufacturer="$(var.Manufacturer)"
         Languages="$(var.LanguageCode)"
-        InstallScope="perMachine"
     />
 
     <!--
@@ -98,6 +121,15 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
     />
 
     <!--
+      Don't check the running app since we handle it with custom actions anyway,
+      see https://learn.microsoft.com/en-us/windows/win32/msi/msirestartmanagercontrol.
+    -->
+    <Property
+        Id="MSIRESTARTMANAGERCONTROL"
+        Value="Disable"
+    />
+
+    <!--
       Describe the installed resources layout, see
       https://wixtoolset.org/docs/v3/xsd/wix/directory.
     -->
@@ -106,7 +138,7 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
         Name="SourceDir"
       >
       <Directory
-          Id="ProgramFilesFolder"
+          Id="$(var.PlatformProgramFilesFolder)"
           Name="PFiles"
         >
         <Directory
@@ -116,6 +148,7 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
           <Component
               Id="MainExecutable"
               Guid="$(var.ExecutableGUID)"
+              Win64="$(var.ComponentWin64)"
             >
             <File
                 Id="AdGuardDNSClient"
@@ -152,7 +185,7 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
     </Feature
     >
 
-    <!-- 
+    <!--
       Add custom actions for installing/uninstalling and starting/stopping the
       service.
 
@@ -161,12 +194,23 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
 
     <CustomAction
         Id="InstallSvc"
+        Impersonate="no"
         FileKey="AdGuardDNSClient"
         ExeCommand="-s install"
         Execute="deferred"
+        Return="check"
+    />
+    <CustomAction
+        Id="RollbackInstallSvc"
+        Impersonate="no"
+        FileKey="AdGuardDNSClient"
+        ExeCommand="-s uninstall"
+        Execute="rollback"
+        Return="check"
     />
     <CustomAction
         Id="UninstallSvc"
+        Impersonate="no"
         FileKey="AdGuardDNSClient"
         ExeCommand="-s uninstall"
         Execute="deferred"
@@ -175,12 +219,15 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
 
     <CustomAction
         Id="StartSvc"
+        Impersonate="no"
         FileKey="AdGuardDNSClient"
         ExeCommand="-s start"
         Execute="deferred"
+        Return="check"
     />
     <CustomAction
         Id="StopSvc"
+        Impersonate="no"
         FileKey="AdGuardDNSClient"
         ExeCommand="-s stop"
         Execute="deferred"
@@ -198,9 +245,10 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
       -->
       <Custom
           Action="StopSvc"
-          After="InstallInitialize"
+          After="ProcessComponents"
+          Before="UnpublishFeatures"
         >
-        Installed
+        REMOVE~="ALL"
       </Custom
       >
       <!--
@@ -210,7 +258,7 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
           Action="UninstallSvc"
           After="StopSvc"
         >
-        Installed AND (NOT REINSTALL)
+        REMOVE~="ALL"
       </Custom
       >
       <!--
@@ -218,12 +266,22 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
       -->
       <Custom
           Action="InstallSvc"
-          After="InstallFiles"
+          After="PublishProduct"
         >
         NOT Installed
       </Custom
       >
-      <!-- 
+      <!--
+        Rollback the installed service in case it can't start.
+      -->
+      <Custom
+          Action="RollbackInstallSvc"
+          Before="InstallSvc"
+        >
+        NOT Installed
+      </Custom
+      >
+      <!--
         Start the installed Windows service.
       -->
       <Custom
