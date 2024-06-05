@@ -6,7 +6,7 @@
     'name': 'AdGuardDNSClient'
 'variables':
     'dockerFpm': 'alanfranz/fpm-within-docker:ubuntu-bionic'
-    'dockerGo': 'adguard/go-builder:1.22.3--2'
+    'dockerGo': '${bamboo.adguardRegistryHost}/adguard/go-builder:1.22.4--1'
     'maintainer': 'Adguard DNS Team'
     'name': 'AdGuardDNSClient'
     'channel': 'development'
@@ -186,7 +186,7 @@
     # images.  The "candidate" pseudo-channel is used to generate version.
     '^rc-v[0-9]+\.[0-9]+\.[0-9]+':
         'variables':
-            'dockerGo': 'adguard/go-builder:1.22.3--2'
+            'dockerGo': '${bamboo.adguardRegistryHost}/adguard/go-builder:1.22.4--1'
             'channel': 'candidate'
 
 'notifications':
