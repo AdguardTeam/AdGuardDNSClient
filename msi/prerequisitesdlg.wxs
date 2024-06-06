@@ -1,0 +1,492 @@
+<?xml version="1.0"?>
+<?include
+./info.wxi ?>
+<Wix
+    xmlns="http://wixtoolset.org/schemas/v4/wxs"
+    xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+  >
+  <!--
+    Define the PrerequisitesDlg in a separate fragment to keep the logic and
+    relations as local as possible.
+  -->
+  <Fragment
+    >
+    <UI
+      >
+      <!--
+        Define a dialogue that would verify the installation mode and the
+        specified options, like autostart or configuration removal.
+      -->
+      <Dialog
+          Id="PrerequisitesDlg"
+          Width="370"
+          Height="270"
+          Title="$(var.PrerequisitesTitle)"
+          TrackDiskSpace="yes"
+        >
+
+        <!--
+          Add the Install button and its default costing conditions.
+        -->
+        <Control
+            Id="Install"
+            Type="PushButton"
+            ElevationShield="yes"
+            X="212"
+            Y="243"
+            Width="80"
+            Height="17"
+            Default="yes"
+            Hidden="yes"
+            Disabled="yes"
+            Text="Install"
+            ShowCondition="NOT Installed"
+            EnableCondition="NOT Installed"
+            DefaultCondition="NOT Installed"
+          >
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace &lt;&gt; 1"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfRbDiskDlg"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND (PROMPTROLLBACKCOST=&quot;P&quot; OR NOT PROMPTROLLBACKCOST)"
+          />
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="EnableRollback"
+              Value="False"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfDiskDlg"
+              Condition="(OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 1) OR (OutOfDiskSpace = 1 AND PROMPTROLLBACKCOST=&quot;F&quot;)"
+          />
+        </Control
+        >
+
+        <!--
+          Add the Change button and its default costing conditions.
+        -->
+        <Control
+            Id="Change"
+            Type="PushButton"
+            ElevationShield="yes"
+            X="212"
+            Y="243"
+            Width="80"
+            Height="17"
+            Default="yes"
+            Hidden="yes"
+            Disabled="yes"
+            Text="Change"
+            ShowCondition="WixUI_InstallMode = &quot;Change&quot; AND (ADDLOCAL OR REMOVE)"
+            EnableCondition="WixUI_InstallMode = &quot;Change&quot;"
+            DefaultCondition="WixUI_InstallMode = &quot;Change&quot;"
+          >
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace &lt;&gt; 1"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfRbDiskDlg"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND (PROMPTROLLBACKCOST=&quot;P&quot; OR NOT PROMPTROLLBACKCOST)"
+          />
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="EnableRollback"
+              Value="False"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfDiskDlg"
+              Condition="(OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 1) OR (OutOfDiskSpace = 1 AND PROMPTROLLBACKCOST=&quot;F&quot;)"
+          />
+        </Control
+        >
+
+        <!--
+          Add the Repair button and its default costing conditions.
+        -->
+        <Control
+            Id="Repair"
+            Type="PushButton"
+            X="212"
+            Y="243"
+            Width="80"
+            Height="17"
+            Default="yes"
+            Hidden="yes"
+            Disabled="yes"
+            Text="Repair"
+            ShowCondition="WixUI_InstallMode = &quot;Repair&quot;"
+            EnableCondition="WixUI_InstallMode = &quot;Repair&quot;"
+            DefaultCondition="WixUI_InstallMode = &quot;Repair&quot;"
+          >
+          <Publish
+              Event="ReinstallMode"
+              Value="ecmus"
+              Condition="OutOfDiskSpace &lt;&gt; 1"
+          />
+          <Publish
+              Event="Reinstall"
+              Value="All"
+              Condition="OutOfDiskSpace &lt;&gt; 1"
+          />
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace &lt;&gt; 1"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfRbDiskDlg"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND (PROMPTROLLBACKCOST=&quot;P&quot; OR NOT PROMPTROLLBACKCOST)"
+          />
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="EnableRollback"
+              Value="False"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfDiskDlg"
+              Condition="(OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 1) OR (OutOfDiskSpace = 1 AND PROMPTROLLBACKCOST=&quot;F&quot;)"
+          />
+        </Control
+        >
+
+        <!--
+          Add the Repair button and its default costing conditions.
+        -->
+        <Control
+            Id="Remove"
+            Type="PushButton"
+            ElevationShield="yes"
+            X="212"
+            Y="243"
+            Width="80"
+            Height="17"
+            Hidden="yes"
+            Disabled="yes"
+            Text="Remove"
+            ShowCondition="WixUI_InstallMode = &quot;Remove&quot;"
+            EnableCondition="WixUI_InstallMode = &quot;Remove&quot;"
+          >
+          <Publish
+              Event="Remove"
+              Value="All"
+              Condition="OutOfDiskSpace &lt;&gt; 1"
+          />
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace &lt;&gt; 1"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfRbDiskDlg"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND (PROMPTROLLBACKCOST=&quot;P&quot; OR NOT PROMPTROLLBACKCOST)"
+          />
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="EnableRollback"
+              Value="False"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfDiskDlg"
+              Condition="(OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 1) OR (OutOfDiskSpace = 1 AND PROMPTROLLBACKCOST=&quot;F&quot;)"
+          />
+        </Control
+        >
+
+        <!--
+          Add the Update button and its default costing conditions.
+        -->
+        <Control
+            Id="Update"
+            Type="PushButton"
+            ElevationShield="yes"
+            X="212"
+            Y="243"
+            Width="80"
+            Height="17"
+            Hidden="yes"
+            Disabled="yes"
+            Text="Update"
+            ShowCondition="WixUI_InstallMode = &quot;Update&quot;"
+            EnableCondition="WixUI_InstallMode = &quot;Update&quot;"
+          >
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace &lt;&gt; 1"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfRbDiskDlg"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND (PROMPTROLLBACKCOST=&quot;P&quot; OR NOT PROMPTROLLBACKCOST)"
+          />
+          <Publish
+              Event="EndDialog"
+              Value="Return"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="EnableRollback"
+              Value="False"
+              Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;"
+          />
+          <Publish
+              Event="SpawnDialog"
+              Value="OutOfDiskDlg"
+              Condition="(OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 1) OR (OutOfDiskSpace = 1 AND PROMPTROLLBACKCOST=&quot;F&quot;)"
+          />
+        </Control
+        >
+
+        <!--
+          For all labels use preprocessor variables to define the content.
+        -->
+        <Control
+            Id="InstallTitle"
+            Type="Text"
+            X="15"
+            Y="15"
+            Width="300"
+            Height="15"
+            Transparent="yes"
+            NoPrefix="yes"
+            Hidden="yes"
+            Text="$(var.PrerequisitesInstallTitle)"
+            ShowCondition="NOT Installed"
+        />
+        <Control
+            Id="InstallText"
+            Type="Text"
+            X="25"
+            Y="70"
+            Width="320"
+            Height="80"
+            Hidden="yes"
+            Text="$(var.PrerequisitesInstallText)"
+            ShowCondition="NOT Installed"
+        />
+        <Control
+            Id="StartAfterInstallCheckBox"
+            Type="CheckBox"
+            X="25"
+            Y="160"
+            Width="220"
+            Height="40"
+            Hidden="yes"
+            Property="START_AFTER_INSTALL"
+            CheckBoxValue="1"
+            Text="$(var.PrerequisitesStartCheckBoxText)"
+            ShowCondition="NOT Installed"
+        />
+        <Control
+            Id="ChangeTitle"
+            Type="Text"
+            X="15"
+            Y="15"
+            Width="300"
+            Height="15"
+            Transparent="yes"
+            NoPrefix="yes"
+            Hidden="yes"
+            Text="$(var.PrerequisitesChangeTitle)"
+            ShowCondition="WixUI_InstallMode = &quot;Change&quot;"
+        />
+        <Control
+            Id="ChangeText"
+            Type="Text"
+            X="25"
+            Y="70"
+            Width="320"
+            Height="80"
+            Hidden="yes"
+            Text="$(var.PrerequisitesChangeText)"
+            ShowCondition="WixUI_InstallMode = &quot;Change&quot;"
+        />
+        <Control
+            Id="RepairTitle"
+            Type="Text"
+            X="15"
+            Y="15"
+            Width="300"
+            Height="15"
+            Transparent="yes"
+            NoPrefix="yes"
+            Hidden="yes"
+            Text="$(var.PrerequisitesRepairTitle)"
+            ShowCondition="WixUI_InstallMode = &quot;Repair&quot;"
+        />
+        <Control
+            Id="RepairText"
+            Type="Text"
+            X="25"
+            Y="70"
+            Width="320"
+            Height="80"
+            Hidden="yes"
+            NoPrefix="yes"
+            Text="$(var.PrerequisitesRepairText)"
+            ShowCondition="WixUI_InstallMode = &quot;Repair&quot;"
+        />
+        <Control
+            Id="RemoveTitle"
+            Type="Text"
+            X="15"
+            Y="15"
+            Width="300"
+            Height="15"
+            Transparent="yes"
+            NoPrefix="yes"
+            Hidden="yes"
+            Text="$(var.PrerequisitesRemoveTitle)"
+            ShowCondition="WixUI_InstallMode = &quot;Remove&quot;"
+        />
+        <Control
+            Id="RemoveText"
+            Type="Text"
+            X="25"
+            Y="70"
+            Width="320"
+            Height="80"
+            Hidden="yes"
+            NoPrefix="yes"
+            Text="$(var.PrerequisitesRemoveText)"
+            ShowCondition="WixUI_InstallMode = &quot;Remove&quot;"
+        />
+        <Control
+            Id="DeleteConfigurationCheckBox"
+            Type="CheckBox"
+            X="25"
+            Y="160"
+            Width="220"
+            Height="40"
+            Hidden="yes"
+            Property="DELETE_CONFIGURATION"
+            CheckBoxValue="1"
+            Text="$(var.PrerequisitesDeleteConfigurationCheckBoxText)"
+            ShowCondition="WixUI_InstallMode = &quot;Remove&quot;"
+        />
+        <Control
+            Id="UpdateTitle"
+            Type="Text"
+            X="15"
+            Y="15"
+            Width="300"
+            Height="15"
+            Transparent="yes"
+            NoPrefix="yes"
+            Hidden="yes"
+            Text="$(var.PrerequisitesUpdateTitle)"
+            ShowCondition="WixUI_InstallMode = &quot;Update&quot;"
+        />
+        <Control
+            Id="UpdateText"
+            Type="Text"
+            X="25"
+            Y="70"
+            Width="320"
+            Height="80"
+            Hidden="yes"
+            NoPrefix="yes"
+            Text="$(var.PrerequisitesUpdateText)"
+            ShowCondition="WixUI_InstallMode = &quot;Update&quot;"
+        />
+
+        <!--
+          Add the installation flow controls.
+        -->
+        <Control
+            Id="Cancel"
+            Type="PushButton"
+            X="304"
+            Y="243"
+            Width="56"
+            Height="17"
+            Cancel="yes"
+            Text="Cancel"
+          >
+          <Publish
+              Event="SpawnDialog"
+              Value="CancelDlg"
+          />
+        </Control
+        >
+        <Control
+            Id="Back"
+            Type="PushButton"
+            X="156"
+            Y="243"
+            Width="56"
+            Height="17"
+            Text="Back"
+            DefaultCondition="WixUI_InstallMode = &quot;Remove&quot;"
+        />
+
+        <!--
+          Add decorations.
+        -->
+        <Control
+            Id="BannerBitmap"
+            Type="Bitmap"
+            X="0"
+            Y="0"
+            Width="370"
+            Height="44"
+            TabSkip="no"
+            Text="WixUI_Bmp_Banner"
+        />
+        <Control
+            Id="BannerLine"
+            Type="Line"
+            X="0"
+            Y="44"
+            Width="370"
+            Height="0"
+        />
+        <Control
+            Id="BottomLine"
+            Type="Line"
+            X="0"
+            Y="234"
+            Width="370"
+            Height="0"
+        />
+      </Dialog
+      >
+    </UI
+    >
+  </Fragment
+  >
+</Wix
+>

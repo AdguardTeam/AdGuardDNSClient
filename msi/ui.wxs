@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+<?include
+./info.wxi ?>
+<Wix
+    xmlns="http://wixtoolset.org/schemas/v4/wxs"
+    xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
+  >
+  <!--
+    Define the MSI installer interface in a separate fragment, as it seems to be
+    mandatory for the msitools' WiX implementation.
+  -->
+  <Fragment
+    >
+    <!--
+      Keep the interface simple and minimalistic, strive to stay within the five
+      dialogues pipeline:
+
+       1. WelcomeDlg / MaintenanceWelcomeDlg
+       2.          - / MaintanenceTypeDlg 
+       3. PrerequisitesDlg
+       4. ProgressDlg
+       5. ExitDlg
+    
+      See https://wixtoolset.org/docs/v3/xsd/wix/ui.
+    -->
+    <UI
+        Id="InstallerUI"
+      >
+      <!--
+        Use a common font for Windows Installer, see
+        https://wixtoolset.org/docs/v3/xsd/wix/textstyle.
+      -->
+      <TextStyle
+          Id="WixUI_Font_Normal"
+          FaceName="Tahoma"
+          Size="8"
+      />
+      <TextStyle
+          Id="WixUI_Font_Bigger"
+          FaceName="Tahoma"
+          Size="12"
+      />
+      <TextStyle
+          Id="WixUI_Font_Title"
+          FaceName="Tahoma"
+          Size="9"
+          Bold="yes"
+      />
+
+      <Property
+          Id="DefaultUIFont"
+          Value="WixUI_Font_Normal"
+      />
+      <!--
+        Give a hint to built-in dialogues, see
+        https://wixtoolset.org/docs/v3/wixui/wixui_dialog_library.
+      -->
+      <Property
+          Id="WixUI_Mode"
+          Value="Minimal"
+      />
+
+      <!--
+        Enumerate the used default dialogues.
+      -->
+      <DialogRef
+          Id="ErrorDlg"
+      />
+      <DialogRef
+          Id="FatalError"
+      />
+      <DialogRef
+          Id="FilesInUse"
+      />
+      <DialogRef
+          Id="MsiRMFilesInUse"
+      />
+      <DialogRef
+          Id="PrepareDlg"
+      />
+      <DialogRef
+          Id="ProgressDlg"
+      />
+      <DialogRef
+          Id="ResumeDlg"
+      />
+      <DialogRef
+          Id="UserExit"
+      />
+      <DialogRef
+          Id="WelcomeDlg"
+      />
+
+      <!--
+        Assign some unassigned actions to the controls.
+      -->
+
+      <Publish
+          Dialog="ExitDialog"
+          Control="Finish"
+          Event="EndDialog"
+          Value="Return"
+          Order="999"
+      />
+
+      <Publish
+          Dialog="MaintenanceWelcomeDlg"
+          Control="Next"
+          Event="NewDialog"
+          Value="MaintenanceTypeDlg"
+      />
+
+      <Publish
+          Dialog="MaintenanceTypeDlg"
+          Control="RepairButton"
+          Event="NewDialog"
+          Value="PrerequisitesDlg"
+      />
+      <Publish
+          Dialog="MaintenanceTypeDlg"
+          Control="RemoveButton"
+          Event="NewDialog"
+          Value="PrerequisitesDlg"
+      />
+      <Publish
+          Dialog="MaintenanceTypeDlg"
+          Control="Back"
+          Event="NewDialog"
+          Value="MaintenanceWelcomeDlg"
+      />
+
+      <Publish
+          Dialog="WelcomeDlg"
+          Control="Next"
+          Event="NewDialog"
+          Value="PrerequisitesDlg"
+          Condition="NOT Installed"
+      />
+
+      <!--
+        Make the Back button choose the dialog conditionally in the custom
+        PrerequisitesDlg.
+      -->
+      <Publish
+          Dialog="PrerequisitesDlg"
+          Control="Back"
+          Event="NewDialog"
+          Value="MaintenanceWelcomeDlg"
+          Condition="Installed AND NOT RESUME AND NOT Preselected AND NOT PATCH"
+      />
+      <Publish
+          Dialog="PrerequisitesDlg"
+          Control="Back"
+          Event="NewDialog"
+          Value="WelcomeDlg"
+          Condition="NOT Installed"
+      />
+
+      <!--
+        Define the UI Sequence.  Keep the MaintenanceWelcomeDlg first to provide
+        automatic detection of the product's state.  See
+        https://wixtoolset.org/docs/v3/xsd/wix/installuisequence and
+        https://learn.microsoft.com/en-us/windows/win32/msi/suggested-installuisequence
+      -->
+      <InstallUISequence
+        >
+        <Show
+            Dialog="MaintenanceWelcomeDlg"
+            Before="WelcomeDlg"
+            Condition="Installed AND NOT RESUME AND NOT Preselected AND NOT PATCH"
+        />
+        <Show
+            Dialog="WelcomeDlg"
+            Before="ProgressDlg"
+            Condition="NOT Installed"
+        />
+      </InstallUISequence
+      >
+
+      <!--
+        Disable "Modify" and "Repair" MSI options.
+
+        TODO(e.burkov):  Consider enabling "Repair" for debugging, since by
+        default it makes Windows substitute the cached MSI for further usage.
+      -->
+      <Property
+          Id="ARPNOMODIFY"
+          Value="1"
+      />
+      <Property
+          Id="ARPNOREPAIR"
+          Value="1"
+      />
+    </UI
+    >
+
+    <UIRef
+        Id="WixUI_Common"
+    />
+  </Fragment
+  >
+</Wix
+>

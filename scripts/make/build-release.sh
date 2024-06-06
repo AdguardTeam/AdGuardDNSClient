@@ -177,6 +177,8 @@ sign() {
 }
 
 # Function build_msi creates and signs an MSI package for provided architecture.
+# 
+# TODO(e.burkov):  Move to separate script file.
 build_msi() {
 	# Get the arguments.  Here and below, use the "msi_" prefix for all
 	# variables local to function build_msi.
@@ -203,12 +205,17 @@ build_msi() {
 	msi_version="${version#v}"
 
 	wixl\
-		-D "ProductVersion=${msi_version}"\
-		-D "BuildOutput=${msi_exe}"\
-		-D "Platform=${msi_arch}"\
+		--ext "ui"\
 		-a "$msi_arch"\
+		-D "BuildOutput=${msi_exe}"\
+		-D "ProductVersion=${msi_version}"\
 		-o "$msi_out"\
-		./scripts/make/msi-schema.wxs
+		./msi/product.wxs\
+		./msi/prerequisitesdlg.wxs\
+		./msi/ui.wxs\
+		;
+	msibuild "$msi_out" -a Binary.WixUI_Bmp_Dialog ./msi/bitmaps/dialogue.bmp
+	msibuild "$msi_out" -a Binary.WixUI_Bmp_Banner ./msi/bitmaps/banner.bmp
 
 	log "$msi_out"
 

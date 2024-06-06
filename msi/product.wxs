@@ -3,70 +3,11 @@
   Format XML documents with:
     xmllint -pretty 2
 -->
-<!--
-  Use 1033, the code for U.S. English, see
-  https://learn.microsoft.com/en-us/openspecs/office_standards/ms-oe376/6c085406-a698-4e12-9d4d-c3b0ee3dbc4a.
--->
-<?define
-LanguageCode="1033" ?>
-<!--
-  Product information.
-
-  NOTE: Don't change the following codes since those must be consistent among
-  different versions, see
-  https://documentation.help/Windows-Installer/windows_installer_best_practices.htm.
--->
-<?define
-UpgradeCode="{40391C3E-440C-4792-A62F-5E3F93FE7C3C}" ?>
-<?define
-ExecutableGUID="{788DF3FB-2EC9-48FD-9F69-D6385B319BCA}" ?>
-<!--
-  Use astrisk for automatic PackageCode picking, see
-  https://documentation.help/Windows-Installer/windows_installer_best_practices.htm.
--->
-<?define
-PackageCode="*" ?>
-<?if
-$(var.Platform) = x64 ?>
-<!--
-  Use {941C5942-5C4F-4FEC-86DF-B2FAD4AB5448} for versions <= 0.1.0 (x64)
--->
-<?define
-ProductCode="{941C5942-5C4F-4FEC-86DF-B2FAD4AB5448}" ?>
-<?define
-PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
-<?define
-ComponentWin64="yes" ?>
-<?else
-?>
-<!--
-  Use {1B0E61B1-58F9-42F7-86A7-7F7CF5104C0F} for versions <= 0.1.0 (x86)
--->
-<?define
-ProductCode="{1B0E61B1-58F9-42F7-86A7-7F7CF5104C0F}" ?>
-<?define
-PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
-<?define
-ComponentWin64="no" ?>
-<?endif
-?>
-<!--
-  Define some human-readable information about the product.
--->
-<?define
-ProductName="AdGuard DNS Client" ?>
-<?define
-Manufacturer="Adguard Software Limited" ?>
-<?define
-InstallerDescription="AdGuard DNS Client Installer" ?>
-<!--
-  The top-level container element, see
-  https://wixtoolset.org/docs/v3/xsd/wix/wix.
-
-  TODO(e.burkov): Add xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
--->
+<?include
+./info.wxi ?>
 <Wix
     xmlns="http://wixtoolset.org/schemas/v4/wxs"
+    xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
   >
   <!--
     Describe a Product, since this is an MSI distribution, see
@@ -130,6 +71,30 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
     />
 
     <!--
+      Use a custom property for the StartSvc custom action condition.
+    -->
+    <Property
+        Id="START_AFTER_INSTALL"
+        Value="0"
+    />
+
+    <!--
+      Determine the path to cmd.exe dynamically.
+    -->
+    <Property
+        Id="CMDPATH"
+        Value="cmd.exe"
+    />
+
+    <!--
+      Use a custom property for the DeleteConfiguration custom action condition.
+    -->
+    <Property
+        Id="DELETE_CONFIGURATION"
+        Value="0"
+    />
+
+    <!--
       Describe the installed resources layout, see
       https://wixtoolset.org/docs/v3/xsd/wix/directory.
     -->
@@ -162,6 +127,12 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
               -->
             </File
             >
+            <File
+                Id="License"
+                Name="LICENSE.txt"
+                DiskId="1"
+                Source="./LICENSE"
+            />
           </Component
           >
         </Directory
@@ -186,12 +157,15 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
     >
 
     <!--
-      Add custom actions for installing/uninstalling and starting/stopping the
-      service.
-
-      See https://wixtoolset.org/docs/schema/wxs/customaction.
+      Add custom actions, see
+      https://wixtoolset.org/docs/schema/wxs/customaction.
     -->
 
+    <!--
+      Install the service and check the result since this is a required step.
+
+      TODO(e.burkov):  Perhaps, it'd be better to use ServiceInstall element.
+    -->
     <CustomAction
         Id="InstallSvc"
         Impersonate="no"
@@ -200,14 +174,24 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
         Execute="deferred"
         Return="check"
     />
+
+    <!--
+      Uninstall the service and don't check the result, as this step is for the
+      rollback sequence, which should do the least.
+    -->
     <CustomAction
         Id="RollbackInstallSvc"
         Impersonate="no"
         FileKey="AdGuardDNSClient"
         ExeCommand="-s uninstall"
         Execute="rollback"
-        Return="check"
+        Return="ignore"
     />
+
+    <!--
+      Uninstall the service and don't check the result, as this step is
+      performed on uninstall and should not require the service to be installed.
+    -->
     <CustomAction
         Id="UninstallSvc"
         Impersonate="no"
@@ -217,14 +201,53 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
         Return="ignore"
     />
 
+    <!--
+      Set the path to cmd.exe and check the result since it's very unlikely to
+      fail.
+    -->
+    <CustomAction
+        Id="SetCMDPATH"
+        Impersonate="no"
+        Property="CMDPATH"
+        Value="[SystemFolder]cmd.exe"
+        Execute="immediate"
+        Return="check"
+    />
+
+    <!--
+      Delete the configuration on uninstall if the user wants it, and don't
+      check the result, as the actual default filename may be irrelevant.
+
+      TODO(e.burkov):  Add RemoveFile element when
+      https://gitlab.gnome.org/GNOME/msitools/-/issues/47 is resolved.
+    -->
+    <CustomAction
+        Id="DeleteConfiguration"
+        Impersonate="no"
+        Property="CMDPATH"
+        ExeCommand="/c &quot; del /q &quot;[INSTALLDIR]config.yaml&quot; &quot;"
+        Execute="deferred"
+        Return="ignore"
+    />
+
+    <!--
+      Start the service after install if the user wants it, and check the result
+      since the startup actually doesn't return any potential errors unless the
+      service is installed.
+    -->
     <CustomAction
         Id="StartSvc"
         Impersonate="no"
         FileKey="AdGuardDNSClient"
         ExeCommand="-s start"
-        Execute="deferred"
+        Execute="commit"
         Return="check"
     />
+
+    <!--
+      Stop the service and don't check the result, as this step is performed on
+      uninstall and should not require the service to be installed.
+    -->
     <CustomAction
         Id="StopSvc"
         Impersonate="no"
@@ -236,34 +259,40 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
 
     <!--
       Define the actions order, see
-      https://wixtoolset.org/docs/v3/xsd/wix/installexecutesequence.
+      https://wixtoolset.org/docs/v3/xsd/wix/installexecutesequence and
+      https://learn.microsoft.com/en-us/windows/win32/msi/suggested-installexecutesequence.
     -->
     <InstallExecuteSequence
       >
-      <!--
-        Stop the Windows service before uninstalling the service.
-      -->
       <Custom
           Action="StopSvc"
           After="ProcessComponents"
-          Before="UnpublishFeatures"
+          Before="UninstallSvc"
         >
         REMOVE~="ALL"
       </Custom
       >
-      <!--
-        Uninstall the Windows service before removing the executable.
-      -->
       <Custom
           Action="UninstallSvc"
-          After="StopSvc"
+          Before="SetCMDPATH"
         >
         REMOVE~="ALL"
       </Custom
       >
-      <!--
-        Run the installed executable to install as Windows service.
-      -->
+      <Custom
+          Action="SetCMDPATH"
+          Before="DeleteConfiguration"
+        >
+        DELETE_CONFIGURATION AND REMOVE~="ALL"
+      </Custom
+      >
+      <Custom
+          Action="DeleteConfiguration"
+          Before="UnpublishFeatures"
+        >
+        DELETE_CONFIGURATION AND REMOVE~="ALL"
+      </Custom
+      >
       <Custom
           Action="InstallSvc"
           After="PublishProduct"
@@ -271,32 +300,19 @@ InstallerDescription="AdGuard DNS Client Installer" ?>
         NOT Installed
       </Custom
       >
-      <!--
-        Rollback the installed service in case it can't start.
-      -->
-      <Custom
-          Action="RollbackInstallSvc"
-          Before="InstallSvc"
-        >
-        NOT Installed
-      </Custom
-      >
-      <!--
-        Start the installed Windows service.
-      -->
       <Custom
           Action="StartSvc"
           After="InstallSvc"
         >
-        NOT Installed
+        START_AFTER_INSTALL AND (NOT Installed)
       </Custom
       >
     </InstallExecuteSequence
     >
 
-    <!--
-      TODO(e.burkov):  Add UI with <UIRef Id="WixUI_Minimal"/>
-    -->
+    <UIRef
+        Id="InstallerUI"
+    />
   </Product
   >
 </Wix

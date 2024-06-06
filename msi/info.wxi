@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Include
+  >
+  <!--
+    Use 1033, the code for U.S. English, see
+    https://learn.microsoft.com/en-us/openspecs/office_standards/ms-oe376/6c085406-a698-4e12-9d4d-c3b0ee3dbc4a.
+  -->
+  <?define
+  LanguageCode="1033" ?>
+
+  <!--
+    Specify product information.
+
+    NOTE: Don't change the following codes since those must be consistent among
+    different versions, see
+    https://documentation.help/Windows-Installer/windows_installer_best_practices.htm.
+  -->
+  <?define
+  UpgradeCode="{40391C3E-440C-4792-A62F-5E3F93FE7C3C}" ?>
+  <?define
+  ExecutableGUID="{788DF3FB-2EC9-48FD-9F69-D6385B319BCA}" ?>
+
+  <!--
+    Use astrisk for automatic PackageCode picking, see
+    https://documentation.help/Windows-Installer/windows_installer_best_practices.htm.
+  -->
+  <?define
+  PackageCode="*" ?>
+
+  <?if
+  $(sys.BUILDARCH) = x64 ?>
+  <!--
+    Use {941C5942-5C4F-4FEC-86DF-B2FAD4AB5448} for versions <= 0.1.0 (x64)
+  -->
+  <?define
+  ProductCode="{941C5942-5C4F-4FEC-86DF-B2FAD4AB5448}" ?>
+  <?define
+  PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
+  <?define
+  ComponentWin64="yes" ?>
+  <?else
+  ?>
+  <!--
+    Use {1B0E61B1-58F9-42F7-86A7-7F7CF5104C0F} for versions <= 0.1.0 (x86)
+  -->
+  <?define
+  ProductCode="{1B0E61B1-58F9-42F7-86A7-7F7CF5104C0F}" ?>
+  <?define
+  PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
+  <?define
+  ComponentWin64="no" ?>
+  <?endif
+  ?>
+
+  <!--
+    Define some human-readable information about the product.
+
+    TODO(e.burkov):  Move this and below to localization .wxl files.  See
+    https://wixtoolset.org/docs/v3/howtos/ui_and_localization/make_installer_localizable.
+  -->
+  <?define
+  ProductName="AdGuard DNS Client" ?>
+  <?define
+  Manufacturer="Adguard Software Limited" ?>
+  <?define
+  InstallerDescription="[ProductName] Installer" ?>
+
+  <!--
+    Define the installer label's text.
+  -->
+  <?define
+  PrerequisitesTitle="[ProductName] Setup" ?>
+  <?define
+  PrerequisitesInstallTitle="{\WixUI_Font_Title}Ready to install [ProductName]" ?>
+  <?define
+  PrerequisitesInstallText="Click Install to begin the installation. Click Back to review or change any of your installation settings. Click Cancel to exit the wizard." ?>
+  <?define
+  PrerequisitesStartCheckBoxText="Start [ProductName] after install" ?>
+  <?define
+  PrerequisitesChangeTitle="{\WixUI_Font_Title}Ready to change [ProductName]" ?>
+  <?define
+  PrerequisitesChangeText="Click Change to begin the installation. Click Back to review or change any of your installation settings. Click Cancel to exit the wizard." ?>
+  <?define
+  PrerequisitesRepairTitle="{\WixUI_Font_Title}Ready to repair [ProductName]" ?>
+  <?define
+  PrerequisitesRepairText="Click Repair to repair the installation of [ProductName]. Click Back to review or change any of your installation settings. Click Cancel to exit the wizard." ?>
+  <?define
+  PrerequisitesRemoveTitle="{\WixUI_Font_Title}Ready to remove [ProductName]" ?>
+  <?define
+  PrerequisitesRemoveText="Click Remove to remove [ProductName] from your computer. Click Back to review or change any of your installation settings. Click Cancel to exit the wizard." ?>
+  <?define
+  PrerequisitesUpdateTitle="{\WixUI_Font_Title}Ready to update [ProductName]" ?>
+  <?define
+  PrerequisitesUpdateText="Click Update to update [ProductName] from your computer. Click Back to review or change any of your installation settings. Click Cancel to exit the wizard." ?>
+  <?define
+  PrerequisitesDeleteConfigurationCheckBoxText="Delete [ProductName] configuration file." ?>
+</Include
+>
