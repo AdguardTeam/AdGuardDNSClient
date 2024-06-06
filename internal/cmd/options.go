@@ -33,10 +33,11 @@ func parseOptions() (opts *options, err error) {
 	const (
 		optionService      = "s"
 		descriptionService = "service action to perform, one of: " +
-			string(serviceActionStart) + ", " +
-			string(serviceActionStop) + ", " +
-			string(serviceActionRestart) + ", " +
 			string(serviceActionInstall) + ", " +
+			string(serviceActionRestart) + ", " +
+			string(serviceActionStart) + ", " +
+			string(serviceActionStatus) + ", " +
+			string(serviceActionStop) + ", " +
 			string(serviceActionUninstall)
 
 		optionVerbose      = "v"

@@ -69,10 +69,11 @@ type serviceAction string
 
 // Available service commands.
 const (
-	serviceActionStart     serviceAction = "start"
-	serviceActionStop      serviceAction = "stop"
-	serviceActionRestart   serviceAction = "restart"
 	serviceActionInstall   serviceAction = "install"
+	serviceActionRestart   serviceAction = "restart"
+	serviceActionStart     serviceAction = "start"
+	serviceActionStatus    serviceAction = "status"
+	serviceActionStop      serviceAction = "stop"
 	serviceActionUninstall serviceAction = "uninstall"
 )
 
@@ -83,10 +84,11 @@ var _ flag.Value = (*serviceAction)(nil)
 func (a *serviceAction) Set(value string) (err error) {
 	switch sa := serviceAction(value); sa {
 	case
-		serviceActionStart,
-		serviceActionStop,
-		serviceActionRestart,
 		serviceActionInstall,
+		serviceActionRestart,
+		serviceActionStart,
+		serviceActionStatus,
+		serviceActionStop,
 		serviceActionUninstall:
 		*a = sa
 
@@ -112,25 +114,60 @@ func control(svc osservice.Service, confPath string, action serviceAction) (err 
 	}
 
 	switch action {
-	case serviceActionStart:
-		return svc.Start()
-	case serviceActionStop:
-		return svc.Stop()
+	case serviceActionInstall:
+		return controlInstall(l, svc, confPath)
 	case serviceActionRestart:
 		return svc.Restart()
-	case serviceActionInstall:
-		err = writeDefaultConfig(l, confPath)
-		if err != nil {
-			// Don't wrap the error since it's informative enough as is.
-			return err
-		}
-
-		return svc.Install()
+	case serviceActionStart:
+		return svc.Start()
+	case serviceActionStatus:
+		return controlStatus(svc)
+	case serviceActionStop:
+		return svc.Stop()
 	case serviceActionUninstall:
 		return svc.Uninstall()
 	default:
 		panic(errUnknownAction)
 	}
+}
+
+// controlInstall generates a default configuration file, if necessary, and
+// installs svc as the system service.
+func controlInstall(l osservice.Logger, svc osservice.Service, confPath string) (err error) {
+	err = writeDefaultConfig(l, confPath)
+	if err != nil {
+		// Don't wrap the error since it's informative enough as is.
+		return err
+	}
+
+	return svc.Install()
+}
+
+// controlStatus prints the status of the system service corresponding to svc.
+// It returns an error if the appropriate exit code should be used.
+func controlStatus(svc osservice.Service) (err error) {
+	status, err := svc.Status()
+	if err != nil {
+		return fmt.Errorf("retrieving status: %w", err)
+	}
+
+	var msg string
+	switch status {
+	case osservice.StatusRunning:
+		msg = "running"
+	case osservice.StatusStopped:
+		msg = "stopped"
+	default:
+		// Don't expect [osservice.StatusUnknown] here, since it's only returned
+		// on error.
+		//
+		// TODO(e.burkov):  Consider panicking here.
+		return fmt.Errorf("unexpected status %d", status)
+	}
+
+	_, _ = fmt.Fprintln(os.Stdout, msg)
+
+	return nil
 }
 
 // defaultService is the implementation of the [osservice.Interface] interface

@@ -47,14 +47,14 @@ Any option overrides the corresponding value provided by configuration file.
 
 ### <a href="#opts-service" id="opts-service" name="opts-service">Service</a>
 
-Option `-s <value>` specifies the OS service action.  Possible values
-are:
+Option `-s <value>` specifies the OS service action.  Possible values are:
 
 - `install`: installs AdGuard DNS Client as a service;
-- `uninstall`: uninstalls AdGuard DNS Client service;
-- `start`: starts the installed AdGuard DNS Client service;
-- `stop`: stops the running AdGuard DNS Client;
 - `restart`: restarts the running AdGuard DNS Client service.
+- `start`: starts the installed AdGuard DNS Client service;
+- `status`: shows the status of the installed AdGuard DNS Client service;
+- `stop`: stops the running AdGuard DNS Client;
+- `uninstall`: uninstalls AdGuard DNS Client service;
 
 ### <a href="#opts-verbose" id="opts-verbose" name="opts-verbose">Verbose</a>
 
