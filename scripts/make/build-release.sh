@@ -184,7 +184,7 @@ build_msi() {
 	# variables local to function build_msi.
 	msi_exe_arch="${1:?please set build architecture}"
 	msi_out="${2:?please set installer output}"
-	msi_exe="${3:?please set path to executable}"
+	msi_dir="${3:?please set path to executable}"
 
 	case "$msi_exe_arch"
 	in
@@ -207,7 +207,7 @@ build_msi() {
 	wixl\
 		--ext "ui"\
 		-a "$msi_arch"\
-		-D "BuildOutput=${msi_exe}"\
+		-D "BuildDir=${msi_dir}"\
 		-D "ProductVersion=${msi_version}"\
 		-o "$msi_out"\
 		./msi/product.wxs\
@@ -260,7 +260,16 @@ build() {
 	# Prepare the build directory for archiving.
 	#
 	# TODO(e.burkov):  Add CHANGELOG.md and LICENSE.txt.
-	cp ./README.md "$build_dir"
+	cp ./README.md        "$build_dir"
+	cp ./config.dist.yaml "$build_dir"
+
+	# Use the ".txt" extension if we copy text file into Windows release.
+	if [ "$build_os" = 'windows' ]
+	then
+		cp ./LICENSE "${build_dir}/LICENSE.txt"
+	else
+		cp ./LICENSE "$build_dir"
+	fi
 
 	# Make archives.  Windows and macOS prefer ZIP archives; the rest, gzipped
 	# tarballs.
@@ -273,7 +282,7 @@ build() {
 		# https://gitlab.gnome.org/GNOME/msitools/-/issues/61 is resolved.
 		if [ "$build_arch" != "arm64" ]
 		then
-			build_msi "$build_arch" "./${dist}/${build_ar}.msi" "$build_output"
+			build_msi "$build_arch" "./${dist}/${build_ar}.msi" "$build_dir"
 		fi
 
 		build_archive="./${dist}/${build_ar}.zip"

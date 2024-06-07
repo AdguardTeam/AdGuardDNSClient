@@ -119,7 +119,7 @@
                 Id="AdGuardDNSClient"
                 Name="AdGuardDNSClient.exe"
                 DiskId="1"
-                Source="$(var.BuildOutput)"
+                Source="$(var.BuildDir)/AdGuardDNSClient.exe"
                 KeyPath="yes"
               >
               <!--
@@ -131,7 +131,7 @@
                 Id="License"
                 Name="LICENSE.txt"
                 DiskId="1"
-                Source="./LICENSE"
+                Source="$(var.BuildDir)/LICENSE.txt"
             />
           </Component
           >
