@@ -367,7 +367,7 @@ calculate_checksums() {
 
 	: > ./checksums.txt
 
-	for archive in ./*.zip ./*.tar.gz
+	for archive in ./*.zip ./*.tar.gz ./*.msi
 	do
 		# Make sure that we don't try to calculate a checksum for a glob pattern
 		# that matched no files.

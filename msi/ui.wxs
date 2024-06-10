@@ -178,19 +178,17 @@
       >
 
       <!--
-        Disable "Modify" and "Repair" MSI options.
-
-        TODO(e.burkov):  Consider enabling "Repair" for debugging, since by
-        default it makes Windows substitute the cached MSI for further usage.
+        Disable "Modify" MSI option.
       -->
       <Property
           Id="ARPNOMODIFY"
           Value="1"
       />
-      <Property
-          Id="ARPNOREPAIR"
-          Value="1"
-      />
+      <!--
+        TODO(e.burkov):  Disable the "Repair" option with ARPNOREPAIR when the
+        <Upgrade /> mechanism is implemented.  Alternatively, make it a useful
+        scenario.
+      -->
     </UI
     >
 
