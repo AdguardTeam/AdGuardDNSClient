@@ -3,10 +3,10 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
-	"github.com/AdguardTeam/golibs/osutil"
-	osservice "github.com/kardianos/service"
+	"github.com/AdguardTeam/golibs/errors"
 )
 
 // options specifies the command-line options.
@@ -29,6 +29,8 @@ type options struct {
 const statusArgumentError = 2
 
 // parseOptions parses the command-line options.
+//
+// TODO(e.burkov):  Use [flag.NewFlagSet].
 func parseOptions() (opts *options, err error) {
 	const (
 		optionService      = "s"
@@ -54,41 +56,17 @@ func parseOptions() (opts *options, err error) {
 	flag.BoolVar(&opts.verbose, optionVerbose, false, descriptionVerbose)
 	flag.BoolVar(&opts.help, optionHelp, false, descriptionHelp)
 
-	return opts, flag.CommandLine.Parse(os.Args[1:])
-}
+	var errs []error
 
-// processOptions returns an [osservice.Service] to run.  It may appear nil when
-// the program should exit immediately with exitCode.
-func processOptions(opts *options, parseErr error) (svc osservice.Service, exitCode int) {
-	if parseErr != nil {
-		// Already reported by flag package.
-		return nil, statusArgumentError
+	flag.CommandLine.SetOutput(io.Discard)
+
+	err = flag.CommandLine.Parse(os.Args[1:])
+	errs = append(errs, err)
+
+	if len(flag.Args()) > 0 {
+		err = fmt.Errorf("unexpected arguments: %q", flag.Args())
+		errs = append(errs, err)
 	}
 
-	if opts.help {
-		flag.CommandLine.SetOutput(os.Stdout)
-		flag.CommandLine.Usage()
-
-		return nil, osutil.ExitCodeSuccess
-	}
-
-	svc, confPath, err := newDefaultService(opts)
-	if err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, err)
-
-		return nil, osutil.ExitCodeFailure
-	}
-
-	if opts.serviceAction != "" {
-		err = control(svc, confPath, opts.serviceAction)
-		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, err)
-
-			return nil, osutil.ExitCodeFailure
-		}
-
-		return nil, osutil.ExitCodeSuccess
-	}
-
-	return svc, 0
+	return opts, errors.Join(errs...)
 }

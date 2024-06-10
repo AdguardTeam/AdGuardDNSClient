@@ -30,14 +30,21 @@ func (c *logConfig) validate() (err error) {
 	return nil
 }
 
-// logger creates a new logger with the specified verbosity.
-func logger(isVerbose bool) (l *slog.Logger) {
+// newLogger creates a new logger from opts and conf.
+//
+// TODO(s.chzhen):  Add envs.
+func newLogger(opts *options, conf *configuration) (l *slog.Logger) {
 	// logFormat is the format of the log messages.
 	//
 	// TODO(e.burkov):  Use [log/slog] in [dnsproxy] and make it configurable.
 	//
 	// TODO(e.burkov):  Add unmarshalling to [slogutil.Format].
 	const logFormat slogutil.Format = slogutil.FormatAdGuardLegacy
+
+	isVerbose := opts.verbose
+	if conf != nil {
+		isVerbose = isVerbose || conf.Log.Verbose
+	}
 
 	// TODO(e.burkov):  Configure timestamp.
 	l = slogutil.New(&slogutil.Config{

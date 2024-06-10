@@ -12,7 +12,6 @@ import (
 	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/AdguardTeam/golibs/timeutil"
 	"github.com/c2h5oh/datasize"
-	osservice "github.com/kardianos/service"
 	"gopkg.in/yaml.v3"
 )
 
@@ -28,7 +27,6 @@ const (
 // filters out the ones that are not in the set.  It returns the [ipPortConfig]s
 // for the eligible addresses created using port p.
 func filterInterfaceAddrs(
-	l osservice.Logger,
 	addrs []net.Addr,
 	set netutil.SubnetSet,
 	p uint16,
@@ -37,14 +35,14 @@ func filterInterfaceAddrs(
 		addrStr := a.String()
 		pref, err := netip.ParsePrefix(addrStr)
 		if err != nil {
-			_ = l.Infof("unexpected %q format: %s", addrStr, err)
+			_, _ = fmt.Fprintf(os.Stderr, "unexpected %q format: %s\n", addrStr, err)
 
 			continue
 		}
 
 		addr := pref.Addr()
 		if !set.Contains(addr) {
-			_ = l.Infof("can not listen on %s", addr)
+			_, _ = fmt.Fprintf(os.Stderr, "can not listen on %s\n", addr)
 
 			continue
 		}
@@ -53,7 +51,7 @@ func filterInterfaceAddrs(
 			Address: netip.AddrPortFrom(addr, p),
 		})
 
-		_ = l.Infof("adding %s to default listening addresses", addr)
+		_, _ = fmt.Fprintf(os.Stderr, "adding %s to default listening addresses\n", addr)
 	}
 
 	return confs
@@ -67,7 +65,7 @@ func isListenable(addr netip.Addr) (ok bool) {
 
 // allListenableAddresses returns all the addresses of network interfaces that
 // are local and are not link-local unicast addresses.
-func allListenableAddresses(l osservice.Logger) (laddrs ipPortConfigs, err error) {
+func allListenableAddresses() (laddrs ipPortConfigs, err error) {
 	netAddrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, fmt.Errorf("getting interfaces addresses: %w", err)
@@ -75,15 +73,15 @@ func allListenableAddresses(l osservice.Logger) (laddrs ipPortConfigs, err error
 
 	set := netutil.SubnetSetFunc(isListenable)
 
-	return filterInterfaceAddrs(l, netAddrs, set, defaultPlainDNSPort), nil
+	return filterInterfaceAddrs(netAddrs, set, defaultPlainDNSPort), nil
 }
 
 // newDefaultServerConfig creates a new server configuration with the local
 // addresses of the machine.
-func newDefaultServerConfig(l osservice.Logger) (c *serverConfig, err error) {
+func newDefaultServerConfig() (c *serverConfig, err error) {
 	defer func() { err = errors.Annotate(err, "creating default server configuration: %w") }()
 
-	localAddrs, err := allListenableAddresses(l)
+	localAddrs, err := allListenableAddresses()
 	if err != nil {
 		// Don't wrap the error since there is already an annotation deferred.
 		return nil, err
@@ -95,10 +93,10 @@ func newDefaultServerConfig(l osservice.Logger) (c *serverConfig, err error) {
 }
 
 // newDefaultDNSConfig creates a new default configuration for DNS.
-func newDefaultDNSConfig(l osservice.Logger) (c *dnsConfig, err error) {
+func newDefaultDNSConfig() (c *dnsConfig, err error) {
 	defer func() { err = errors.Annotate(err, "creating default DNS configuration: %w") }()
 
-	serverConf, err := newDefaultServerConfig(l)
+	serverConf, err := newDefaultServerConfig()
 	if err != nil {
 		// Don't wrap the error since there is already an annotation deferred.
 		return nil, err
@@ -149,10 +147,10 @@ func newDefaultDNSConfig(l osservice.Logger) (c *dnsConfig, err error) {
 
 // newDefaultConfig creates a new ready-to-use default configuration for a newly
 // installed service.
-func newDefaultConfig(l osservice.Logger) (c *configuration, err error) {
+func newDefaultConfig() (c *configuration, err error) {
 	defer func() { err = errors.Annotate(err, "creating default configuration: %w") }()
 
-	dnsConf, err := newDefaultDNSConfig(l)
+	dnsConf, err := newDefaultDNSConfig()
 	if err != nil {
 		// Don't wrap the error since there is already an annotation deferred.
 		return nil, err
@@ -175,7 +173,7 @@ func newDefaultConfig(l osservice.Logger) (c *configuration, err error) {
 
 // writeDefaultConfig writes the default configuration to the file at path.  If
 // the file at path already exists, it does nothing.
-func writeDefaultConfig(l osservice.Logger, path string) (err error) {
+func writeDefaultConfig(path string) (err error) {
 	defer func() { err = errors.Annotate(err, "writing default configuration: %w") }()
 
 	// #nosec G304 -- Trust the path to the configuration file that is currently
@@ -183,7 +181,8 @@ func writeDefaultConfig(l osservice.Logger, path string) (err error) {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		if errors.Is(err, os.ErrExist) {
-			_ = l.Infof("using configuration file %q", path)
+			// TODO(e.burkov):  Log properly.
+			_, _ = fmt.Fprintf(os.Stderr, "using configuration file %q\n", path)
 
 			return nil
 		}
@@ -192,15 +191,15 @@ func writeDefaultConfig(l osservice.Logger, path string) (err error) {
 	}
 	defer func() { err = errors.WithDeferred(err, f.Close()) }()
 
-	_ = l.Info("creating default configuration")
+	_, _ = fmt.Fprintln(os.Stderr, "creating default configuration")
 
-	conf, err := newDefaultConfig(l)
+	conf, err := newDefaultConfig()
 	if err != nil {
 		// Don't wrap the error since it's informative enough as is.
 		return err
 	}
 
-	_ = l.Info("writing default configuration")
+	_, _ = fmt.Fprintln(os.Stderr, "writing default configuration")
 
 	return yaml.NewEncoder(f).Encode(conf)
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/AdguardTeam/golibs/errors"
 	"gopkg.in/yaml.v3"
@@ -30,6 +31,59 @@ type configuration struct {
 //
 // TODO(e.burkov):  Make configurable via flags or environment.
 const defaultConfigPath = "config.yaml"
+
+// configPath return the default path to the configuration file.  It assumes
+// that the configuration file is located in the same directory as the
+// executable.
+func configPath() (confPath string, err error) {
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("getting executable path: %w", err)
+	}
+
+	absExecPath, err := filepath.Abs(execPath)
+	if err != nil {
+		return "", fmt.Errorf("getting absolute path of %q: %w", execPath, err)
+	}
+
+	return filepath.Join(filepath.Dir(absExecPath), defaultConfigPath), nil
+}
+
+// handleServiceConfig returns the service configuration based on the specified
+// [serviceAction].
+func handleServiceConfig(action serviceAction) (conf *configuration, err error) {
+	confPath, err := configPath()
+	if err != nil {
+		// Don't wrap the error since it's informative enough as is.
+		return nil, err
+	}
+
+	switch action {
+	case serviceActionNone:
+		conf, err = parseConfig(confPath)
+		if err != nil {
+			// Don't wrap the error since it's informative enough as is.
+			return nil, err
+		}
+
+		err = conf.validate()
+		if err != nil {
+			// Don't wrap the error since it's informative enough as is.
+			return nil, err
+		}
+	case serviceActionInstall:
+		err = writeDefaultConfig(confPath)
+		if err != nil {
+			// Don't wrap the error since it's informative enough as is.
+			return nil, err
+		}
+	default:
+		// No service actions require configuration.
+		return nil, nil
+	}
+
+	return conf, nil
+}
 
 // parseConfig parses the YAML configuration file located at path.
 func parseConfig(path string) (conf *configuration, err error) {
