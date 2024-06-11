@@ -11,10 +11,15 @@ import (
 type upstreamConfigs map[netip.Prefix]*proxy.UpstreamConfig
 
 // clients creates a list of clients from confs.
-func (confs upstreamConfigs) clients() (clients []*client) {
+func (confs upstreamConfigs) clients(cacheConf *CacheConfig) (clients []*client) {
 	for cli, conf := range confs {
 		clients = append(clients, &client{
-			conf:   proxy.NewCustomUpstreamConfig(conf, false, 0, false),
+			conf: proxy.NewCustomUpstreamConfig(
+				conf,
+				cacheConf.Enabled,
+				int(cacheConf.ClientSize),
+				false,
+			),
 			prefix: cli,
 		})
 	}

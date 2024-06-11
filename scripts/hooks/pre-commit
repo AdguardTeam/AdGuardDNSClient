@@ -82,7 +82,7 @@ fi
 verbose="${VERBOSE:-0}"
 readonly verbose
 
-if [ "$( git diff --cached --name-only -- '*.md' '*.yaml' '*.yml' )" ]
+if [ "$( git diff --cached --name-only -- '*.md' '*.yaml' '*.yml' '*.wxs' '*.wxi' )" ]
 then
 	make VERBOSE="$verbose" txt-lint
 fi

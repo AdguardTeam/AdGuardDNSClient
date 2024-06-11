@@ -60,6 +60,7 @@ func (c *dnsConfig) toInternal() (conf *dnssvc.Config) {
 	return &dnssvc.Config{
 		// TODO(e.burkov):  Consider making configurable.
 		PrivateSubnets: netutil.SubnetSetFunc(netutil.IsLocallyServed),
+		Cache:          c.Cache.toInternal(),
 		Bootstrap:      c.Bootstrap.toInternal(),
 		Upstreams:      c.Upstream.toInternal(),
 		Fallbacks:      c.Fallback.toInternal(),

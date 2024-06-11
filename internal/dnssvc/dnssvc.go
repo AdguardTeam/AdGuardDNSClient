@@ -109,7 +109,9 @@ func newProxyConfig(
 		UsePrivateRDNS:            private != nil,
 		Fallbacks:                 falls,
 		TrustedProxies:            trusted,
-	}, ups.clients(), nil
+		CacheSizeBytes:            int(conf.Cache.Size),
+		CacheEnabled:              conf.Cache.Enabled,
+	}, ups.clients(conf.Cache), nil
 }
 
 // newListenAddrs creates a new list of UDP and TCP addresses from addrs.

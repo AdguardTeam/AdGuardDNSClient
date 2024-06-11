@@ -35,12 +35,15 @@ following properties:
     **Example:** `true`.
 
  *  <a href="#dns-cache-size" id="dns-cache-size" name="dns-cache-size">`size`</a>:
-    The maximum size of the DNS results cache in bytes.
+    The maximum size of the DNS results cache as human-readable data size.  It
+    must be greater than zero if [`enabled`](#dns-cache-enabled) is `true`.
 
     **Example:** `128MB`.
 
  *  <a href="#dns-cache-client-size" id="dns-cache-client-size" name="dns-cache-client-size">`client_size`</a>:
-    The maximum size of the DNS results cache for a single client in bytes.
+    The maximum size of the DNS results cache for each configured client's
+    address or subnetwork as human-readable data size.  It must be greater than
+    zero if [`enabled`](#dns-cache-enabled) is `true`.
 
     **Example:** `4MB`.
 
@@ -82,7 +85,7 @@ servers addresses.  It has the following properties:
     ```
 
  *  <a href="#dns-bootstrap-timeout" id="dns-bootstrap-timeout" name="dns-bootstrap-timeout">`timeout`</a>:
-    The timeout for bootstrap DNS requests.
+    The timeout for bootstrap DNS requests as a human-readable duration.
 
     **Example:** `2s`.
 
@@ -145,7 +148,7 @@ following properties:
     group is defined.
 
  *  <a href="#dns-upstream-timeout" id="dns-upstream-timeout" name="dns-upstream-timeout">`timeout`</a>:
-    The timeout for upstream DNS requests.
+    The timeout for upstream DNS requests as a human-readable duration.
 
     **Example:** `2s`.
 
@@ -168,7 +171,7 @@ the following properties:
     ```
 
  *  <a href="#dns-fallback-timeout" id="dns-fallback-timeout" name="dns-fallback-timeout">`timeout`</a>:
-    The timeout for fallback DNS requests.
+    The timeout for fallback DNS requests as a human-readable duration.
 
     **Example:** `2s`.
 

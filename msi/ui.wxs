@@ -16,11 +16,11 @@
       dialogues pipeline:
 
        1. WelcomeDlg / MaintenanceWelcomeDlg
-       2.          - / MaintanenceTypeDlg 
+       2.          - / MaintanenceTypeDlg
        3. PrerequisitesDlg
        4. ProgressDlg
        5. ExitDlg
-    
+
       See https://wixtoolset.org/docs/v3/xsd/wix/ui.
     -->
     <UI

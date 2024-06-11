@@ -5,6 +5,8 @@
 #
 # AdGuard-Project-Version: 5
 
+# TODO(e.burkov):  Add xmllint.  See msi/product.wxs.
+
 verbose="${VERBOSE:-0}"
 readonly verbose
 

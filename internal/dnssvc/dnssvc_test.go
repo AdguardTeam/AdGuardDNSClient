@@ -182,6 +182,9 @@ func TestDNSService(t *testing.T) {
 	svc, err := dnssvc.New(&dnssvc.Config{
 		PrivateSubnets: privateNets,
 		Bootstrap:      &dnssvc.BootstrapConfig{},
+		Cache: &dnssvc.CacheConfig{
+			Enabled: false,
+		},
 		Upstreams: &dnssvc.UpstreamConfig{
 			Groups: []*dnssvc.UpstreamGroupConfig{{
 				Name:    agdc.UpstreamGroupNameDefault,

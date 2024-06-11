@@ -16,6 +16,10 @@ type Config struct {
 	// of the networks.  It must not be nil.
 	PrivateSubnets netutil.SubnetSet
 
+	// Cache is the configuration for the DNS results cache.  It must not be
+	// nil.
+	Cache *CacheConfig
+
 	// Bootstrap describes bootstrapping DNS servers.  It must not be nil.
 	Bootstrap *BootstrapConfig
 

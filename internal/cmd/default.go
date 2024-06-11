@@ -20,7 +20,7 @@ const (
 	defaultPlainDNSPort uint16 = 53
 
 	// defaultUpstreamTimeout is the default timeout for outgoing DNS requests.
-	defaultUpstreamTimeout = 10 * time.Second
+	defaultUpstreamTimeout = 2 * time.Second
 )
 
 // filterInterfaceAddrs gets the addresses as given by [net.InterfaceAddrs] and

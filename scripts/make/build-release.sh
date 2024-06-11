@@ -177,7 +177,7 @@ sign() {
 }
 
 # Function build_msi creates and signs an MSI package for provided architecture.
-# 
+#
 # TODO(e.burkov):  Move to separate script file.
 build_msi() {
 	# Get the arguments.  Here and below, use the "msi_" prefix for all
