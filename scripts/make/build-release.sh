@@ -25,6 +25,10 @@ fi
 sign="${SIGN:-1}"
 readonly sign
 
+# By default, build the MSI packages, but allow users to skip that step.
+msi="${MSI:-1}"
+readonly msi
+
 # Exit the script if a pipeline fails (-e), prevent accidental filename
 # expansion (-f), and consider undefined variables as errors (-u).
 set -e -f -u
@@ -280,7 +284,7 @@ build() {
 
 		# TODO(e.burkov):  Add ARM-compatible MSI installer, when
 		# https://gitlab.gnome.org/GNOME/msitools/-/issues/61 is resolved.
-		if [ "$build_arch" != "arm64" ]
+		if [ "$msi" -eq 1 ] && [ "$build_arch" != "arm64" ]
 		then
 			build_msi "$build_arch" "./${dist}/${build_ar}.msi" "$build_dir"
 		fi

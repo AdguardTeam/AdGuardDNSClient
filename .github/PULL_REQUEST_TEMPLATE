@@ -1,0 +1,13 @@
+Before submitting a PR please make sure that:
+
+1. You have discussed your solution in an issue and have got an approval from a maintainer. See our [contribution guide](https://github.com/AdguardTeam/AdGuardDNSClient/blob/master/CONTRIBUTING.md).
+
+2. Your code follows our [code guidelines](https://github.com/AdguardTeam/CodeGuidelines/blob/master/Go/Go.md).
+
+Add a short description here. The description should include:
+
+1. Which issue this PR closes (`Closes #NNNN.`) or updates (`Updates #NNNN.`). Please do not open PRs without filing an issue first.
+
+2. A short description of how the change achieves that.
+
+**Do not forget to remove these instructions!**

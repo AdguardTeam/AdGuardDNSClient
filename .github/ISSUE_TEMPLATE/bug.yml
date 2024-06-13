@@ -1,0 +1,134 @@
+'body':
+  - 'attributes':
+        'description': >
+            Please make sure that the issue is not a duplicate or a question.
+            If it's a duplicate, please react to the original issue with a
+            thumbs up. If it's a question, please post it to the GitHub
+            Discussions page.
+        'label': 'Prerequisites'
+        'options':
+          # TODO(a.garipov): Add more precise links to KB.
+          - 'label': >
+                I have checked the [Knowledge Base](https://adguard-dns.io/kb/)
+                and the
+                [Discussions](https://github.com/AdguardTeam/AdGuardDNSClient/discussions)
+                and found no answer
+            'required': true
+          - 'label': >
+                I have searched other issues and found no duplicates
+            'required': true
+          - 'label': >
+                I want to report a bug and not [ask a question or ask for
+                help](https://github.com/AdguardTeam/AdGuardDNSClient/discussions/categories/q-a)
+            'required': true
+          - 'label': >
+                I have set up AdGuard DNS Clients correctly and configured clients to
+                use it. (Use the
+                [Discussions](https://github.com/AdguardTeam/AdGuardDNSClient/discussions/categories/q-a)
+                for help with installing and configuring clients.)
+            'required': true
+    'id': 'prerequisites'
+    'type': 'checkboxes'
+  - 'attributes':
+        'description': 'On which Platform does the issue occur?'
+        'label': 'Platform (OS and CPU architecture)'
+        # NOTE: Keep the 386 at the bottom for each OS, because a lot of people
+        # Seem to confuse them with AMD64, which is what they actually need.
+        'options':
+          - 'Darwin (aka macOS), AMD64 (aka x86_64)'
+          - 'Darwin (aka macOS), ARM64'
+          - 'Linux, AMD64 (aka x86_64)'
+          - 'Linux, ARM64'
+          - 'Linux, 32-bit Intel (aka 386)'
+          - 'Windows, AMD64 (aka x86_64)'
+          - 'Windows, ARM64'
+          - 'Windows, 32-bit Intel (aka 386)'
+          - 'Custom (please mention in the description)'
+    'id': 'os'
+    'type': 'dropdown'
+    'validations':
+        'required': true
+  - 'attributes':
+        'description': 'How did you install AdGuard DNS Client?'
+        'label': 'Installation'
+        'options':
+          - 'GitHub releases'
+          - 'Other (please mention in the description)'
+    'id': 'install'
+    'type': 'dropdown'
+    'validations':
+        'required': true
+  - 'attributes':
+        'description': 'How did you setup AdGuard DNS Client?'
+        'label': 'Setup'
+        'options':
+          - 'On a personal machine'
+          - 'On a router'
+          - 'Other (please mention in the description)'
+    'id': 'setup'
+    'type': 'dropdown'
+    'validations':
+        'required': true
+  - 'attributes':
+        'description': 'What version of AdGuard DNS Client are you using?'
+        'label': 'AdGuard DNS Client version'
+    'id': 'version'
+    'type': 'input'
+    'validations':
+        'required': true
+  - 'attributes':
+        'description': >
+            Please describe what you did. An `nslookup` or a `dig` command is
+            the best way. For crashes, please provide a full failure log.
+        'label': 'Action'
+        'value': |
+            Replace the following command with the one you're calling or a
+            description of the failing action:
+
+            ```sh
+            nslookup -debug -type=a "www.example.com" "$AGDNS_CLIENT_ADDRESS"
+            ```
+    'id': 'failing_action'
+    'type': 'textarea'
+    'validations':
+        'required': true
+  - 'attributes':
+        'description': >
+            What did you expect to see?  Please add a description.
+        'label': 'Expected result'
+        'placeholder': >
+            What did you expect to see?
+    'id': 'expected'
+    'type': 'textarea'
+    'validations':
+        'required': true
+  - 'attributes':
+        'description': >
+            What happened instead?  Please add a description.
+        'label': 'Actual result'
+        'placeholder': >
+            What did you see instead?
+    'id': 'result'
+    'type': 'textarea'
+    'validations':
+        'required': true
+  - 'attributes':
+        'description': >
+            Please add additional information, such as non-standard OS or port,
+            here. You can also put screenshots here, if applicable. For example,
+            it is better to copy and paste text from a terminal instead of
+            posting a screenshot of the terminal.
+        'label': 'Additional information and/or screenshots'
+        'placeholder': >
+            Additional OS information, screenshots of the UI, etc.
+    'id': 'additional'
+    'type': 'textarea'
+    'validations':
+        'required': false
+# NOTE: GitHub limits the description length to 200 characters. Also, Markdown
+# doesn't work here.
+'description': |
+    For help, use the Discussions section instead. Write the title in English
+    to make it easier for other people to search for duplicates. (Any language
+    is fine in the body.)
+'name': 'Bug'

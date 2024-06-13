@@ -41,7 +41,7 @@ following properties:
     **Example:** `128MB`.
 
  *  <a href="#dns-cache-client-size" id="dns-cache-client-size" name="dns-cache-client-size">`client_size`</a>:
-    The maximum size of the DNS results cache for each configured client's
+    The maximum size of the DNS results cache for each configured client’s
     address or subnetwork as human-readable data size.  It must be greater than
     zero if [`enabled`](#dns-cache-enabled) is `true`.
 
@@ -98,11 +98,11 @@ following properties:
 
 
  *  <a href="#dns-upstream-groups" id="dns-upstream-groups" name="dns-upstream-groups">`groups`</a>:
-    The set of upstream servers keyed by the group's name.  It has the following
+    The set of upstream servers keyed by the group’s name.  It has the following
     fields:
 
      *  <a href="#dns-upstream-group-address" id="dns-upstream-group-address" name="dns-upstream-group-address">`address`</a>:
-        The upstream server's address.
+        The upstream server’s address.
 
         **Example:** `'8.8.8.8:53'`.
 
@@ -117,7 +117,7 @@ following properties:
             **Example:** `'mycompany.local'`.
 
          *  <a href="#dns-upstream-group-match-client" id="dns-upstream-group-match-client" name="dns-upstream-group-match-client">`client`</a>:
-            The client's address or a subnet of the client's address that the
+            The client’s address or a subnet of the client’s address that the
             set of upstream servers should be used to resolve requests from.  It
             must have no significant bits outside of the subnet mask.
 
@@ -132,7 +132,7 @@ following properties:
         'match':
           - question_domain: 'mycompany.local'
             client: '192.168.1.0/24'
-          - question_domain: 'mycompany.extrenal'
+          - question_domain: 'mycompany.external'
           - client: '1.2.3.4'
         ```
 
