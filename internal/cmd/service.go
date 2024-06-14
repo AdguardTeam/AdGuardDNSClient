@@ -5,15 +5,18 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/osutil"
 	osservice "github.com/kardianos/service"
 )
+
+// serviceName is the name used by the service and the system logger.
+const serviceName = "AdGuardDNSClient"
 
 // newServiceConfig creates a configuration that the OS service manager uses to
 // control the service.
 func newServiceConfig() (conf *osservice.Config) {
 	return &osservice.Config{
-		Name:        "AdGuardDNSClient",
+		Name:        serviceName,
 		DisplayName: "AdGuardDNS Client",
 		Description: "A DNS client for AdGuardDNS",
 	}
@@ -59,33 +62,46 @@ func (a *serviceAction) Set(value string) (err error) {
 func (a serviceAction) String() (s string) { return string(a) }
 
 // control performs the specified service action.  It mirrors the service logic
-// from [service.Control], but returns better errors.
-func control(svc osservice.Service, action serviceAction) (err error) {
-	defer func() { err = errors.Annotate(err, "performing %q: %w", action) }()
-
+// from [service.Control], but reports better errors and prints them to stderr.
+//
+// TODO(e.burkov):  Get output from this in MSI installer and show it.
+func control(
+	svc osservice.Service,
+	action serviceAction,
+) (exitCode osutil.ExitCode) {
+	var err error
 	switch action {
 	case serviceActionInstall:
-		return svc.Install()
+		err = svc.Install()
 	case serviceActionRestart:
-		return svc.Restart()
+		err = svc.Restart()
 	case serviceActionStart:
-		return svc.Start()
+		err = svc.Start()
 	case serviceActionStatus:
-		return controlStatus(svc)
+		err = controlStatus(svc)
 	case serviceActionStop:
-		return svc.Stop()
+		err = svc.Stop()
 	case serviceActionUninstall:
-		return svc.Uninstall()
+		err = svc.Uninstall()
 	default:
 		panic(errUnknownAction)
 	}
+
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "performing action %q: retrieving status: %s", action, err)
+
+		return osutil.ExitCodeFailure
+	}
+
+	return osutil.ExitCodeSuccess
 }
 
 // controlStatus prints the status of the system service corresponding to svc.
-// It returns an error if the appropriate exit code should be used.
 func controlStatus(svc osservice.Service) (err error) {
 	status, err := svc.Status()
 	if err != nil {
+		_, _ = fmt.Fprintln(os.Stdout, "error")
+
 		return fmt.Errorf("retrieving status: %w", err)
 	}
 
@@ -96,14 +112,16 @@ func controlStatus(svc osservice.Service) (err error) {
 	case osservice.StatusStopped:
 		msg = "stopped"
 	default:
+		msg = "error"
+
 		// Don't expect [osservice.StatusUnknown] here, since it's only returned
 		// on error.
 		//
 		// TODO(e.burkov):  Consider panicking here.
-		return fmt.Errorf("unexpected status %d", status)
+		err = fmt.Errorf("unexpected status %d", status)
 	}
 
 	_, _ = fmt.Fprintln(os.Stdout, msg)
 
-	return nil
+	return err
 }

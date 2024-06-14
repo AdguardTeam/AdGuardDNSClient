@@ -93,7 +93,7 @@ func (h *SystemHandler) Handle(ctx context.Context, rec slog.Record) (err error)
 
 	rec.AddAttrs(h.attrs...)
 
-	// System log entires already have a timestamp, so setting
+	// System log entries already have a timestamp, so setting
 	// [slog.Record.Time] to zero time will cause it to be ignored by the slog
 	// text handler.
 	//

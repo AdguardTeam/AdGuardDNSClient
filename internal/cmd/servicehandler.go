@@ -18,10 +18,6 @@ type serviceHandler struct {
 	shutdownTimeout time.Duration
 }
 
-// serviceHandlerPrefix is the default and recommended prefix for the logger of
-// a [serviceHandler].
-const serviceHandlerPrefix = "service_handler"
-
 // newServiceHandler returns a new properly initialized *serviceHandler that
 // shuts down services.  The signal for shutting down is the close of done
 // channel, it must not be nil.  timeout is the maximum time to wait for the

@@ -79,6 +79,14 @@ debug:
         enabled: false
 # Logging settings.
 log:
+    # Output of the logs.  Value must be an absolute path to the file or one of
+    # the special values: syslog, stdout, stderr.
+    output: 'syslog'
+    # Format of the log entries.  Supported values are: adguard_legacy, default,
+    # json, jsonhybrid, text.  Note that system log entries are in text format.
+    format: 'default'
+    # If true, the log entries will have the timestamp.
+    timestamp: false
     # If true, the log file will be much more informative.
     verbose: false
 # Schema version of this config file.  This is bumped each time the config file

@@ -3,10 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
+	"os"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/version"
+	"github.com/AdguardTeam/golibs/log"
 	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/service"
 	osservice "github.com/kardianos/service"
@@ -19,19 +22,34 @@ type program struct {
 
 	// conf is the parsed configuration to run the program.  It appears nil on
 	// any service action and must not be accessed.
-	conf  *configuration
-	log   *slog.Logger
-	done  chan struct{}
-	errCh chan error
+	conf    *configuration
+	log     *slog.Logger
+	logFile *os.File
+	done    chan struct{}
+	errCh   chan error
 }
 
 // type check
 var _ osservice.Interface = (*program)(nil)
 
+// serviceProgramPrefix is the default and recommended prefix for the logger of
+// the default [osservice.Interface] implementation.
+const serviceProgramPrefix = "program"
+
 // Start implements the [osservice.Interface] interface for [*program].
 func (prog *program) Start(_ osservice.Service) (err error) {
 	ctx := context.Background()
-	l := prog.log
+	l := prog.log.With(slogutil.KeyPrefix, serviceProgramPrefix)
+
+	// Disable the dnsproxy logging for now, unless asked for debug output.
+	//
+	// TODO(e.burkov):  Use [log/slog] in [dnsproxy] and make it configurable.
+	isVerbose := l.Enabled(ctx, slog.LevelDebug)
+	if isVerbose {
+		log.SetLevel(log.DEBUG)
+	} else {
+		log.SetLevel(log.OFF)
+	}
 
 	// TODO(a.garipov): Copy logs configuration from the WIP abt. slog.
 	l.InfoContext(
@@ -42,7 +60,7 @@ func (prog *program) Start(_ osservice.Service) (err error) {
 		"branch", version.Branch(),
 		"commit_time", version.CommitTime(),
 		"race", version.RaceEnabled,
-		"verbose", l.Enabled(ctx, slog.LevelDebug),
+		"verbose", isVerbose,
 	)
 
 	svcHdlr := newServiceHandler(prog.done, service.SignalHandlerShutdownTimeout)
@@ -60,7 +78,7 @@ func (prog *program) Start(_ osservice.Service) (err error) {
 	svcHdlr.add(dnsSvc)
 	l.DebugContext(ctx, "dns service started")
 
-	go svcHdlr.handle(ctx, l.With(slogutil.KeyPrefix, serviceHandlerPrefix), prog.errCh)
+	go svcHdlr.handle(ctx, prog.log.With(slogutil.KeyPrefix, "service_handler"), prog.errCh)
 
 	return nil
 }
@@ -70,4 +88,27 @@ func (prog *program) Stop(_ osservice.Service) (err error) {
 	close(prog.done)
 
 	return <-prog.errCh
+}
+
+// closeLogs closes the log files and syslog handler, if there are any.
+func (prog *program) closeLogs() {
+	// At this point, just use stderr with defaults.
+	l := slogutil.New(&slogutil.Config{
+		Output: os.Stderr,
+	}).With(slogutil.KeyPrefix, serviceProgramPrefix)
+
+	if prog.logFile != nil {
+		err := prog.logFile.Close()
+		if err != nil {
+			l.Error("stopping: closing log file", slogutil.KeyError, err)
+		}
+	}
+
+	h := prog.log.Handler()
+	if c, ok := h.(io.Closer); ok {
+		err := c.Close()
+		if err != nil {
+			l.Error("stopping: closing syslog", slogutil.KeyError, err)
+		}
+	}
 }

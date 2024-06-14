@@ -203,7 +203,55 @@ the following properties:
 
 ##  <a href="#log" id="log" name="log">Logging</a>
 
+**NOTE:** In its current state, the log system is only intended for debugging
+startup errors.
+
 The `log` object configures the logging.  It has the following properties:
+
+ *  <a href="#log-output" id="log-output" name="log-output">`output`</a>:
+    The output to which logs are written.
+
+    **NOTE:** Log entries written to the system log are in text format and use
+    the system timestamp.
+
+    Possible values:
+
+     *  `syslog` means that the platform-specific system log is used, which is
+        syslog for Linux and Event Log for Windows.
+
+     *  `stdout` for standard output stream.
+
+     *  `stderr` for standard error stream.
+
+     *  Absolute path to the log file.
+
+        **Example:** `/home/user/logs`.
+
+        **Example:** `C:\Users\user\logs.txt`.
+
+    **Example:** `syslog`.
+
+ *  <a href="#log-format" id="log-format" name="log-format">`format`</a>:
+    Specifies format of the log entries.
+
+    Possible values:
+
+     *  `adguard_legacy`;
+     *  `default`;
+     *  `json`;
+     *  `jsonhybrid`;
+     *  `text`.
+
+    **Example:** `default`.
+
+    <!--
+    TODO(s.chzhen):  Add output examples.
+    -->
+
+ *  <a href="#log-timestamp" id="log-timestamp" name="log-timestamp">`timestamp`</a>:
+    If the log entries should contain timestamp.
+
+    **Example:** `false`.
 
  *  <a href="#log-verbose" id="log-verbose" name="log-verbose">`verbose`</a>:
     If the log should be more informative.

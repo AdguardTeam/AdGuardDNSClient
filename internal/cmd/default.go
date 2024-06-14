@@ -9,6 +9,7 @@ import (
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
 	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/AdguardTeam/golibs/timeutil"
 	"github.com/c2h5oh/datasize"
@@ -165,7 +166,10 @@ func newDefaultConfig() (c *configuration, err error) {
 			},
 		},
 		Log: &logConfig{
-			Verbose: false,
+			Output:    outputSyslog,
+			Format:    slogutil.FormatDefault,
+			Timestamp: false,
+			Verbose:   false,
 		},
 		SchemaVersion: currentSchemaVersion,
 	}, nil
