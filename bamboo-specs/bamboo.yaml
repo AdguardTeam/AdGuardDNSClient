@@ -324,7 +324,7 @@
 
                 set -e -f -u -x
 
-                cd ./dist/
+                cd "${bamboo.name}/dist/"
 
                 env\
                     GITHUB_TOKEN="${bamboo.githubPublicRepoPassword}"\
