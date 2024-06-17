@@ -1,5 +1,10 @@
  #  AdGuard DNS Client configuration file
 
+> [!WARNING]
+> This is a temporary document. The final version will be posted to the [AdGuard DNS Knowledge Base][kb].
+
+[kb]: https://adguard-dns.io/kb/
+
 See file [`config.dist.yml`][dist] for a full example of a [YAML][yaml]
 configuration file with comments.
 

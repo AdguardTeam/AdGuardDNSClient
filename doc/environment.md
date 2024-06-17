@@ -1,5 +1,10 @@
 # AdGuard DNS Client environment configuration
 
+> [!WARNING]
+> This is a temporary document. The final version will be posted to the [AdGuard DNS Knowledge Base][kb].
+
+[kb]: https://adguard-dns.io/kb/
+
 AdGuard DNS Client uses [environment variables][wiki-env] to store some of the configuration. All other configuration is stored in the [configuration file][conf].
 
 ## Contents

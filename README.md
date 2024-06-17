@@ -98,7 +98,7 @@ make go-test
 make go-build
 ```
 
-For building packages, you might need additional tools, such as GnuPG, MSI Tools (v0.103 and later), etc.  See `./scripts/make/build-release.sh`.
+For building packages, you might need additional tools, such as GnuPG, MSI Tools (v0.103 and later), etc. See `./scripts/make/build-release.sh`.
 
 ## <a href="#opts" id="opts" name="opts">Command-line options</a>
 
@@ -132,14 +132,14 @@ Option `--version` makes AdGuard DNS Client print out the version of the `AdGuar
 
 ### <a href="#conf-file" id="conf-file" name="conf-file">File</a>
 
-The YAML configuration file is described in the [`doc/configuration.md`] file, and there is also a sample configuration file `config.dist.yaml`.  Some configuration parameters can also be overridden using the environment, see [`doc/environment.md`].
+The YAML configuration file is described in the [`doc/configuration.md`] file, and there is also a sample configuration file `config.dist.yaml`. Some configuration parameters can also be overridden using the environment, see [`doc/environment.md`].
 
 [`doc/configuration.md`]: doc/configuration.md
 [`doc/environment.md`]:   doc/environment.md
 
 ## <a href="#exit-codes" id="exit-codes" name="exit-codes">Exit codes</a>
 
-There are a few different error codes that may appear under different error conditions:
+There are a few different exit codes that may appear under different error conditions:
 
 - `0`: Successfully finished and exited, no errors.
 
