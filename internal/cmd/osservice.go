@@ -88,7 +88,7 @@ func control(
 	}
 
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "performing action %q: retrieving status: %s", action, err)
+		_, _ = fmt.Fprintf(os.Stderr, "performing action %q: retrieving status: %s\n", action, err)
 
 		return osutil.ExitCodeFailure
 	}
