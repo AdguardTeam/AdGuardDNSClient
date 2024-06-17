@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/AdguardTeam/AdGuardDNSClient/internal/version"
 	"github.com/AdguardTeam/golibs/errors"
 )
 
@@ -20,7 +21,12 @@ type options struct {
 	// verbose specifies whether to enable verbose output.
 	verbose bool
 
-	// help makes the application print the usage message and exit.
+	// version makes the application print the version to stdout and exit with
+	// a success status-code.
+	version bool
+
+	// help makes the application print the usage information to stdout and exit
+	// with a success status-code.
 	help bool
 }
 
@@ -45,8 +51,11 @@ func parseOptions() (opts *options, err error) {
 		optionVerbose      = "v"
 		descriptionVerbose = "enable verbose logging"
 
+		optionVersion      = "version"
+		descriptionVersion = "print version to stdout and exit"
+
 		optionHelp      = "h"
-		descriptionHelp = "print this help"
+		descriptionHelp = "print this help to stdout and exit"
 	)
 
 	flag.CommandLine.Init(os.Args[0], flag.ContinueOnError)
@@ -54,6 +63,7 @@ func parseOptions() (opts *options, err error) {
 
 	flag.Var(&opts.serviceAction, optionService, descriptionService)
 	flag.BoolVar(&opts.verbose, optionVerbose, false, descriptionVerbose)
+	flag.BoolVar(&opts.version, optionVersion, false, descriptionVersion)
 	flag.BoolVar(&opts.help, optionHelp, false, descriptionHelp)
 
 	var errs []error
@@ -69,4 +79,19 @@ func parseOptions() (opts *options, err error) {
 	}
 
 	return opts, errors.Join(errs...)
+}
+
+// handleInfoOpts returns true if the options contained -h or --version flags.
+// It also prints the corresponding messages to stdout.
+func (opts *options) handleInfoOpts() (needsExit bool) {
+	if opts.help {
+		flag.CommandLine.SetOutput(os.Stdout)
+		flag.CommandLine.Usage()
+	}
+
+	if opts.version {
+		_, _ = fmt.Fprintln(os.Stdout, version.Version())
+	}
+
+	return opts.help || opts.version
 }

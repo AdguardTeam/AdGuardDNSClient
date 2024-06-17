@@ -17,8 +17,8 @@ A cross-platform lightweight DNS client for [AdGuard DNS]. It operates as a DNS 
 
 ## <a href="#start" id="start" name="start">Quick start</a>
 
-> [!NOTE]
-> AdGuard DNS Client is still in the Beta stage. Things will break and there are still bugs.
+> [!WARNING]
+> AdGuard DNS Client is still in the Beta stage. It may be unstable.
 
 Supported operating systems:
 
@@ -102,7 +102,12 @@ For building packages, you might need additional tools, such as GnuPG, MSI Tools
 
 ## <a href="#opts" id="opts" name="opts">Command-line options</a>
 
-Any option overrides the corresponding value provided by configuration file.
+Each option overrides the corresponding value provided by the configuration file
+and the environment.
+
+### <a href="#opts-help" id="opts-help" name="opts-help">Help</a>
+
+Option `-h` makes AdGuard DNS Client print out a help message to standard output and exit with a success status-code.
 
 ### <a href="#opts-service" id="opts-service" name="opts-service">Service</a>
 
@@ -119,25 +124,25 @@ Option `-s <value>` specifies the OS service action. Possible values are:
 
 Option `-v` enables the verbose log output.
 
+### <a href="#opts-version" id="opts-version" name="opts-version">Version</a>
+
+Option `--version` makes AdGuard DNS Client print out the version of the `AdGuardDNSClient` executable to standard output and exit with a success status-code.
+
 ## <a href="#conf" id="conf" name="conf">Configuration</a>
 
 ### <a href="#conf-file" id="conf-file" name="conf-file">File</a>
 
-The YAML configuration file is described in the [`doc/configuration.md`] file,
-and there is also a sample configuration file `config.dist.yaml`.  Some
-configuration parameters can also be overridden using the environment, see
-[`doc/environment.md`].
+The YAML configuration file is described in the [`doc/configuration.md`] file, and there is also a sample configuration file `config.dist.yaml`.  Some configuration parameters can also be overridden using the environment, see [`doc/environment.md`].
 
 [`doc/configuration.md`]: doc/configuration.md
 [`doc/environment.md`]:   doc/environment.md
 
 ## <a href="#exit-codes" id="exit-codes" name="exit-codes">Exit codes</a>
 
-There are a bunch of different error codes that may appear under different error
-conditions:
+There are a few different error codes that may appear under different error conditions:
 
-- `0`: AdGuardDNSClient successfully finished and exited, no errors.
+- `0`: Successfully finished and exited, no errors.
 
-- `1`: Internal error, most probably misconfiguration.
+- `1`: Internal error, most likely a misconfiguration.
 
-- `2`: Bad command-line argument or its value.
+- `2`: Bad command-line argument or value.

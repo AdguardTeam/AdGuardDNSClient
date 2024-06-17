@@ -29,10 +29,7 @@ func Main() {
 		os.Exit(statusArgumentError)
 	}
 
-	if opts.help {
-		flag.CommandLine.SetOutput(os.Stdout)
-		flag.CommandLine.Usage()
-
+	if opts.handleInfoOpts() {
 		os.Exit(osutil.ExitCodeSuccess)
 	}
 
