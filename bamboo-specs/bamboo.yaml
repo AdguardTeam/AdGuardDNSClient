@@ -143,6 +143,11 @@
         'pattern': '${bamboo.name}/dist/checksums.txt'
         'shared': true
         'required': true
+    -
+        'name': 'Version'
+        'pattern': '${bamboo.name}/dist/version.txt'
+        'shared': true
+        'required': true
     'docker':
         'image': '${bamboo.dockerGo}'
         'volumes':
@@ -303,6 +308,7 @@
       - 'artifact': 'AdGuardDNSClient_windows_amd64_msi'
       - 'artifact': 'AdGuardDNSClient_windows_arm64'
       - 'artifact': 'Checksums'
+      - 'artifact': 'Version'
     'final-tasks':
       - 'clean'
     'key': 'PGH'
