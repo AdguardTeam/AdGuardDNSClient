@@ -328,7 +328,7 @@
 
                 env\
                     GITHUB_TOKEN="${bamboo.githubPublicRepoPassword}"\
-                    ../bamboo-deploy-publisher/deploy.sh\
+                    ../../bamboo-deploy-publisher/deploy.sh\
                     adguarddns-client-github
 
 'branches':
