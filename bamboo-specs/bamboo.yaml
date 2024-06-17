@@ -95,12 +95,12 @@
         'required': true
     -
         'name': 'AdGuardDNSClient_darwin_arm64'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_amd64.zip'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_arm64.zip'
         'shared': true
         'required': true
     -
         'name': 'AdGuardDNSClient_linux_386'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_386.tar.gz'
         'shared': true
         'required': true
     -
@@ -110,7 +110,7 @@
         'required': true
     -
         'name': 'AdGuardDNSClient_linux_arm64'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_arm64.tar.gz'
         'shared': true
         'required': true
     -
