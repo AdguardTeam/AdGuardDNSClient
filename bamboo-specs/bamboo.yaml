@@ -29,7 +29,14 @@
         'manual': false
         'final': false
         'jobs':
+        - 'ArtifactQA'
         - 'Artifact'
+-
+    'Publish':
+        'manual': false
+        'final': false
+        'jobs':
+        - 'Publish'
 
 'Lint':
     'docker':
@@ -80,6 +87,62 @@
     - 'adg-docker': 'true'
 
 'Artifact':
+    'artifacts':
+    -
+        'name': 'AdGuardDNSClient_darwin_amd64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_amd64.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_darwin_arm64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_amd64.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_linux_386'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_linux_amd64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_linux_arm64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_386'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_386.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_386_msi'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_386.msi'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_amd64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_amd64_msi'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.msi'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_arm64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_arm64.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'Checksums'
+        'pattern': '${bamboo.name}/dist/checksums.txt'
+        'shared': true
+        'required': true
     'docker':
         'image': '${bamboo.dockerGo}'
         'volumes':
@@ -88,6 +151,8 @@
     'key': 'ART'
     'other':
          'clean-working-dir': true
+    'requirements':
+      - 'adg-docker': 'true'
     'tasks':
     -
         'checkout':
@@ -114,6 +179,89 @@
               # Explicitly checkout the revision that we need.
               git checkout "${bamboo.repository.revision.number}"
 
+              # TODO(e.burkov):  Consider using more POSIX-compliant printf.
+              echo "${bamboo.gpgSecretKeyPart1}${bamboo.gpgSecretKeyPart2}"\
+                  | awk '{ gsub(/\\n/, "\n"); print; }'\
+                  | gpg --import --batch --yes
+
+              make\
+                  CHANNEL=${bamboo.channel}\
+                  GPG_KEY_PASSPHRASE=${bamboo.gpgPassword}\
+                  DEPLOY_SCRIPT_PATH="../bamboo-deploy-publisher/deploy.sh"\
+                  SIGNER_API_KEY="${bamboo.adguardDnsClientWinSignerSecretApiKey}"\
+                  PARALLELISM=1\
+                  VERBOSE=2\
+                  build-release
+
+'ArtifactQA':
+    'artifacts':
+    -
+        'name': 'AdGuardDNSClient_darwin_amd64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_amd64.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_linux_amd64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_386_msi'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_386.msi'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_amd64'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.zip'
+        'shared': true
+        'required': true
+    -
+        'name': 'AdGuardDNSClient_windows_amd64_msi'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.msi'
+        'shared': true
+        'required': true
+    -
+        'name': 'Checksums'
+        'pattern': '${bamboo.name}/dist/checksums.txt'
+        'shared': true
+        'required': true
+    'docker':
+        'image': '${bamboo.dockerGo}'
+        'volumes':
+            '${system.GO_CACHE_DIR}': '${bamboo.cacheGo}'
+            '${system.GO_PKG_CACHE_DIR}': '${bamboo.cacheGoPkg}'
+    'key': 'ARTQA'
+    'other':
+         'clean-working-dir': true
+    'requirements':
+      - 'adg-docker': 'true'
+    'tasks':
+    -
+        'checkout':
+            'repository': 'bamboo-deploy-publisher'
+            # The paths are always relative to the working directory.
+            'path': 'bamboo-deploy-publisher'
+            'force-clean-build': true
+    -
+        'checkout':
+            'path': '${bamboo.name}'
+            'force-clean-build': true
+    -
+        'script':
+            'interpreter': 'SHELL'
+            'scripts':
+            - |-
+              #!/bin/sh
+
+              set -e -f -u -x
+
+              # Follow the working repository path.
+              cd "${bamboo.name}"
+
+              # Explicitly checkout the revision that we need.
+              git checkout "${bamboo.repository.revision.number}"
+
+              # TODO(e.burkov):  Consider using more POSIX-compliant printf.
               echo "${bamboo.gpgSecretKeyPart1}${bamboo.gpgSecretKeyPart2}"\
                   | awk '{ gsub(/\\n/, "\n"); print; }'\
                   | gpg --import --batch --yes
@@ -131,8 +279,6 @@
 
               # Build windows/386 separately to avoid building it for another
               # OSes.
-              #
-              # TODO(e.burkov):  Use a separate artifact stage for QA builds.
               make\
                   ARCH="386"\
                   OS="windows"\
@@ -143,34 +289,49 @@
                   PARALLELISM=1\
                   VERBOSE=2\
                   build-release
-    'artifacts':
-    -
-        'name': 'AdGuardDNSClient_windows_amd64'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.zip'
-        'shared': true
-        'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_amd64_msi'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.msi'
-        'shared': true
-        'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_386_msi'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_386.msi'
-        'shared': true
-        'required': true
-    -
-        'name': 'AdGuardDNSClient_darwin_amd64'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_amd64.zip'
-        'shared': true
-        'required': true
-    -
-        'name': 'AdGuardDNSClient_linux_amd64'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
-        'shared': true
-        'required': true
+
+'Publish':
+    'artifact-subscriptions':
+      - 'artifact': 'AdGuardDNSClient_darwin_amd64'
+      - 'artifact': 'AdGuardDNSClient_darwin_arm64'
+      - 'artifact': 'AdGuardDNSClient_linux_386'
+      - 'artifact': 'AdGuardDNSClient_linux_amd64'
+      - 'artifact': 'AdGuardDNSClient_linux_arm64'
+      - 'artifact': 'AdGuardDNSClient_windows_386'
+      - 'artifact': 'AdGuardDNSClient_windows_386_msi'
+      - 'artifact': 'AdGuardDNSClient_windows_amd64'
+      - 'artifact': 'AdGuardDNSClient_windows_amd64_msi'
+      - 'artifact': 'AdGuardDNSClient_windows_arm64'
+      - 'artifact': 'Checksums'
+    'final-tasks':
+      - 'clean'
+    'key': 'PGH'
+    'other':
+        'clean-working-dir': true
     'requirements':
       - 'adg-docker': 'true'
+    'tasks':
+      - 'clean'
+      - 'checkout':
+            'repository': 'bamboo-deploy-publisher'
+            'path': 'bamboo-deploy-publisher'
+            'force-clean-build': true
+      - 'script':
+            'interpreter': 'SHELL'
+            'scripts':
+              - |
+                #!/bin/sh
+
+                set -e -f -u -x
+
+                channel="${bamboo.channel}"
+                readonly channel
+
+                cd ./dist/
+
+                env\
+                    GITHUB_TOKEN="${bamboo.githubPublicRepoPassword}"\
+                    ../bamboo-deploy-publisher/deploy.sh adguarddns-client-github
 
 'branches':
     'create': 'for-pull-request'
@@ -188,6 +349,78 @@
         'variables':
             'dockerGo': '${bamboo.adguardRegistryBasePath}/go-builder:1.22.4--1'
             'channel': 'candidate'
+        'stages':
+        - 'Lint':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'Lint'
+        - 'Test':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'Test'
+        - 'Artifact':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'ArtifactQA'
+-
+    # release-vX.Y.Z branches are the branches from which the actual final
+    # release is built.
+    '^release-v[0-9]+\.[0-9]+\.[0-9]+':
+        # Disable integration branches for release branches.
+        'branch-config':
+            'integration':
+                'push-on-success': false
+                'merge-from': 'beta-v0.1'
+        # Build final releases on release branches manually.
+        'triggers': []
+        # Set the default release channel on the final branch to release, as
+        # these are the ones that actually get released.
+        'variables':
+            'dockerGo': '${bamboo.adguardRegistryBasePath}/go-builder:1.22.4--1'
+            'channel': 'release'
+        'stages':
+        - 'Lint':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'Lint'
+        - 'Test':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'Test'
+        - 'Artifact':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'Artifact'
+        - 'Publish':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'Publish'
+-
+    # Don't publish artifacts for other branches.
+    '^.*':
+        'stages':
+        - 'Lint':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'Lint'
+        - 'Test':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'Test'
+        - 'Artifact':
+            'manual': false
+            'final': false
+            'jobs':
+            - 'ArtifactQA'
 
 'notifications':
 -

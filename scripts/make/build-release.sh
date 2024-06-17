@@ -294,21 +294,20 @@ build() {
 		# TODO(a.garipov): Find an option similar to the -C option of tar for
 		# zip.
 		( cd "${dist}/${1}" && zip -9 -q -r "../../${build_archive}" "./AdGuardDNSClient" )
-		log "$build_archive"
 		;;
 	('darwin')
 		build_archive="./${dist}/${build_ar}.zip"
 		# TODO(a.garipov): Find an option similar to the -C option of tar for
 		# zip.
 		( cd "${dist}/${1}" && zip -9 -q -r "../../${build_archive}" "./AdGuardDNSClient" )
-		log "$build_archive"
 		;;
 	(*)
 		build_archive="./${dist}/${build_ar}.tar.gz"
 		tar -C "./${dist}/${1}" -c -f - "./AdGuardDNSClient" | gzip -9 - > "$build_archive"
-		log "$build_archive"
 		;;
 	esac
+
+	log "$build_archive"
 }
 
 log "starting builds"
@@ -386,6 +385,6 @@ calculate_checksums() {
 
 log "writing versions"
 
-echo "version=$version" > "./${dist}/version.txt"
+printf '%s\n' "$version" > "./${dist}/version.txt"
 
 log "finished"
