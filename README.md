@@ -130,8 +130,6 @@ Option `--version` makes AdGuard DNS Client print out the version of the `AdGuar
 
 ## <a href="#conf" id="conf" name="conf">Configuration</a>
 
-### <a href="#conf-file" id="conf-file" name="conf-file">File</a>
-
 The YAML configuration file is described in the [`doc/configuration.md`] file, and there is also a sample configuration file `config.dist.yaml`. Some configuration parameters can also be overridden using the environment, see [`doc/environment.md`].
 
 [`doc/configuration.md`]: doc/configuration.md

@@ -41,13 +41,14 @@ func (prog *program) Start(_ osservice.Service) (err error) {
 	ctx := context.Background()
 	l := prog.log.With(slogutil.KeyPrefix, serviceProgramPrefix)
 
-	// Disable the dnsproxy logging for now, unless asked for debug output.
+	// Disable the dnsproxy logging for now, unless asked for debug output or
+	// using the "adguard_legacy" format.
 	//
 	// TODO(e.burkov):  Use [log/slog] in [dnsproxy] and make it configurable.
 	isVerbose := l.Enabled(ctx, slog.LevelDebug)
 	if isVerbose {
 		log.SetLevel(log.DEBUG)
-	} else {
+	} else if _, ok := l.Handler().(*slogutil.AdGuardLegacyHandler); !ok {
 		log.SetLevel(log.OFF)
 	}
 

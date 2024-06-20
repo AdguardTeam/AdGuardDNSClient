@@ -24,6 +24,9 @@ AdGuard DNS Client uses [environment variables][wiki-env] to store some of the c
 
 The log destination, must be an absolute path to the file or one of the special values.
 
+> [!NOTE]
+> If `LOG_FORMAT` is set to `adguard_legacy`, output is set to `stderr`.
+
 - `syslog` means that the platform-specific system log is used, which is syslog for Linux and Event Log for Windows.
 
     > [!NOTE]
@@ -48,6 +51,9 @@ This environment variable has priority over [log.output][conf-log-output] field 
 ## <a href="#LOG_FORMAT" id="LOG_FORMAT" name="LOG_FORMAT">`LOG_FORMAT`</a>
 
 The format for log entries.
+
+> [!NOTE]
+> If `LOG_FORMAT` is set to `adguard_legacy`, output is set to `stderr`.
 
 - `adguard_legacy`;
 - `default`;

@@ -208,16 +208,19 @@ the following properties:
 
 ##  <a href="#log" id="log" name="log">Logging</a>
 
-**NOTE:** In its current state, the log system is only intended for debugging
-startup errors.
+> [!NOTE]
+> In its current state, the log system is only intended for debugging startup errors.
 
 The `log` object configures the logging.  It has the following properties:
 
  *  <a href="#log-output" id="log-output" name="log-output">`output`</a>:
     The output to which logs are written.
 
-    **NOTE:** Log entries written to the system log are in text format and use
-    the system timestamp.
+    > [!NOTE]
+    > Log entries written to the system log are in text format and use the system timestamp.
+
+    > [!NOTE]
+    > If `log.format` is set to `adguard_legacy`, output is set to `stderr`.
 
     Possible values:
 
@@ -238,6 +241,9 @@ The `log` object configures the logging.  It has the following properties:
 
  *  <a href="#log-format" id="log-format" name="log-format">`format`</a>:
     Specifies format of the log entries.
+
+    > [!NOTE]
+    > If `log.format` is set to `adguard_legacy`, output is set to `stderr`.
 
     Possible values:
 
