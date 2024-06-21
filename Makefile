@@ -8,7 +8,7 @@
 # Makefile.  Bump this number every time a significant change is made to
 # this Makefile.
 #
-# AdGuard-Project-Version: 2
+# AdGuard-Project-Version: 5
 
 # Don't name these macros "GO" etc., because GNU Make apparently makes
 # them exported environment variables with the literal value of
@@ -25,7 +25,7 @@ CHANNEL = development
 DEPLOY_SCRIPT_PATH = not/a/real/path
 DIST_DIR = dist
 GOAMD64 = v1
-GOPROXY = https://goproxy.cn|https://proxy.golang.org|direct
+GOPROXY = https://proxy.golang.org|direct
 GOTOOLCHAIN = go1.22.4
 GPG_KEY = devteam@adguard.com
 GPG_KEY_PASSPHRASE = not-a-real-password
@@ -62,8 +62,6 @@ ENV = env\
 # full build.
 build: go-deps go-build
 
-build-release: ; $(ENV) "$(SHELL)" ./scripts/make/build-release.sh
-
 init: ; git config core.hooksPath ./scripts/hooks
 
 test: go-test
@@ -86,3 +84,5 @@ go-os-check:
 	env GOOS='windows' "$(GO.MACRO)" vet ./internal/...
 
 txt-lint: ; $(ENV) "$(SHELL)" ./scripts/make/txt-lint.sh
+
+build-release: ; $(ENV) "$(SHELL)" ./scripts/make/build-release.sh

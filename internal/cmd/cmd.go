@@ -26,7 +26,7 @@ func Main() {
 		flag.CommandLine.SetOutput(os.Stderr)
 		flag.CommandLine.Usage()
 
-		os.Exit(statusArgumentError)
+		os.Exit(osutil.ExitCodeArgumentError)
 	}
 
 	if opts.handleInfoOpts() {

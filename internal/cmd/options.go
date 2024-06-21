@@ -30,10 +30,6 @@ type options struct {
 	help bool
 }
 
-// statusArgumentError is returned by AdGuardDNSClient when the program exits
-// due to invalid command-line argument or its value.
-const statusArgumentError = 2
-
 // parseOptions parses the command-line options.
 //
 // TODO(e.burkov):  Use [flag.NewFlagSet].
