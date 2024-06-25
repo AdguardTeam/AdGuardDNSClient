@@ -16,6 +16,12 @@ See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
 NOTE: Add new changes BELOW THIS COMMENT.
 -->
 
+### Changed
+
+- Path to the executable is now validated when the application installs itself as a `launchd` service on macOS ([#2]).
+
+[#2]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/2
+
 <!--
 NOTE: Add new changes ABOVE THIS COMMENT.
 -->

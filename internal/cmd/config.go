@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcos"
 	"github.com/AdguardTeam/golibs/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -32,27 +33,27 @@ type configuration struct {
 // TODO(e.burkov):  Make configurable via flags or environment.
 const defaultConfigPath = "config.yaml"
 
-// configPath return the default path to the configuration file.  It assumes
+// absolutePaths return the default path to the configuration file.  It assumes
 // that the configuration file is located in the same directory as the
 // executable.
-func configPath() (confPath string, err error) {
-	execPath, err := os.Executable()
+func absolutePaths() (execPath, confPath string, err error) {
+	execPath, err = os.Executable()
 	if err != nil {
-		return "", fmt.Errorf("getting executable path: %w", err)
+		return "", "", fmt.Errorf("getting executable path: %w", err)
 	}
 
 	absExecPath, err := filepath.Abs(execPath)
 	if err != nil {
-		return "", fmt.Errorf("getting absolute path of %q: %w", execPath, err)
+		return "", "", fmt.Errorf("getting absolute path of %q: %w", execPath, err)
 	}
 
-	return filepath.Join(filepath.Dir(absExecPath), defaultConfigPath), nil
+	return absExecPath, filepath.Join(filepath.Dir(absExecPath), defaultConfigPath), nil
 }
 
 // handleServiceConfig returns the service configuration based on the specified
 // [serviceAction].
 func handleServiceConfig(action serviceAction) (conf *configuration, err error) {
-	confPath, err := configPath()
+	execPath, confPath, err := absolutePaths()
 	if err != nil {
 		// Don't wrap the error since it's informative enough as is.
 		return nil, err
@@ -72,6 +73,14 @@ func handleServiceConfig(action serviceAction) (conf *configuration, err error) 
 			return nil, err
 		}
 	case serviceActionInstall:
+		err = agdcos.ValidateExecPath(execPath)
+		if err != nil {
+			_, _ = fmt.Fprintln(os.Stderr, "service executable must be located in the /Applications/ directory or its subdirectories")
+
+			// Don't wrap the error since it's informative enough as is.
+			return nil, err
+		}
+
 		err = writeDefaultConfig(confPath)
 		if err != nil {
 			// Don't wrap the error since it's informative enough as is.
