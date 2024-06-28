@@ -195,7 +195,12 @@ build_msi() {
 	('386')
 		msi_arch='x86'
 		;;
-	('amd64')
+	('amd64'|'arm64')
+		# Use the value of 'x64' for ARM64 installer, since wixl only considers
+		# this option when specifying component's Win64 attribute value, which
+		# is 'yes' by default for ARM64 architecture.
+		#
+		# See https://wixtoolset.org/docs/v3/xsd/wix/component.
 		msi_arch='x64'
 		;;
 	(*)
@@ -281,10 +286,7 @@ build() {
 	in
 	('windows')
 		# TODO(e.burkov):  Consider building only MSI installers for Windows.
-
-		# TODO(e.burkov):  Add ARM-compatible MSI installer, when
-		# https://gitlab.gnome.org/GNOME/msitools/-/issues/61 is resolved.
-		if [ "$msi" -eq 1 ] && [ "$build_arch" != "arm64" ]
+		if [ "$msi" -eq 1 ]
 		then
 			build_msi "$build_arch" "./${dist}/${build_ar}.msi" "$build_dir"
 		fi

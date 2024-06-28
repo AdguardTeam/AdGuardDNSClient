@@ -16,6 +16,10 @@ See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
 NOTE: Add new changes BELOW THIS COMMENT.
 -->
 
+### Added
+
+- MSI installer for the ARM64 architecture in addition to the existing x86 and x64 installers.
+
 ### Changed
 
 - Path to the executable is now validated when the application installs itself as a `launchd` service on macOS ([#2]).

@@ -72,7 +72,7 @@ readonly parallelism
 # the default value.
 if [ "${parallelism}" != '' ]
 then
-        GOFLAGS="${GOFLAGS:-} -p=${parallelism}"
+    GOFLAGS="${GOFLAGS:-} -p=${parallelism}"
 fi
 readonly GOFLAGS
 export GOFLAGS

@@ -216,13 +216,13 @@
         'shared': true
         'required': true
     -
-        'name': 'AdGuardDNSClient_windows_amd64'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.zip'
+        'name': 'AdGuardDNSClient_windows_amd64_msi'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.msi'
         'shared': true
         'required': true
     -
-        'name': 'AdGuardDNSClient_windows_amd64_msi'
-        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.msi'
+        'name': 'AdGuardDNSClient_windows_arm64_msi'
+        'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_arm64.msi'
         'shared': true
         'required': true
     -
@@ -273,7 +273,7 @@
 
               make\
                   ARCH="amd64"\
-                  OS="windows darwin linux"\
+                  OS="darwin linux"\
                   CHANNEL=${bamboo.channel}\
                   GPG_KEY_PASSPHRASE=${bamboo.gpgPassword}\
                   DEPLOY_SCRIPT_PATH="../bamboo-deploy-publisher/deploy.sh"\
@@ -282,10 +282,9 @@
                   VERBOSE=2\
                   build-release
 
-              # Build windows/386 separately to avoid building it for another
-              # OSes.
+              # Build Windows separately to build MSI installers for all
+              # supported architectures.
               make\
-                  ARCH="386"\
                   OS="windows"\
                   CHANNEL=${bamboo.channel}\
                   GPG_KEY_PASSPHRASE=${bamboo.gpgPassword}\

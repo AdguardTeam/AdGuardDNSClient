@@ -32,7 +32,7 @@
     <Package
         Id="$(var.PackageCode)"
         InstallerVersion="500"
-        Description="$(var.InstallerDescription)"
+        Description="$(var.ProductName) $(var.ProductVersion)"
         Compressed="yes"
         Keywords="Installer"
         Manufacturer="$(var.Manufacturer)"

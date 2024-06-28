@@ -62,8 +62,6 @@
   ProductName="AdGuard DNS Client" ?>
   <?define
   Manufacturer="Adguard Software Limited" ?>
-  <?define
-  InstallerDescription="[ProductName] Installer" ?>
 
   <!--
     Define the installer label's text.
