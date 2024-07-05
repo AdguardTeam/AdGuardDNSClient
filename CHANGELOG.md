@@ -16,6 +16,10 @@ See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
 NOTE: Add new changes BELOW THIS COMMENT.
 -->
 
+### Security
+
+- Go version has been updated to prevent the possibility of exploiting the Go vulnerabilities fixed in [Go 1.22.5][go-1.22.5].
+
 ### Added
 
 - MSI installer for the ARM64 architecture in addition to the existing x86 and x64 installers.
@@ -25,6 +29,8 @@ NOTE: Add new changes BELOW THIS COMMENT.
 - Path to the executable is now validated when the application installs itself as a `launchd` service on macOS ([#2]).
 
 [#2]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/2
+
+[go-1.22.5]: https://groups.google.com/g/golang-announce/c/gyb7aM1C9H4
 
 <!--
 NOTE: Add new changes ABOVE THIS COMMENT.
