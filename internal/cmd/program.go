@@ -9,7 +9,6 @@ import (
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/version"
-	"github.com/AdguardTeam/golibs/log"
 	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/service"
 	osservice "github.com/kardianos/service"
@@ -23,7 +22,7 @@ type program struct {
 	// conf is the parsed configuration to run the program.  It appears nil on
 	// any service action and must not be accessed.
 	conf    *configuration
-	log     *slog.Logger
+	logger  *slog.Logger
 	logFile *os.File
 	done    chan struct{}
 	errCh   chan error
@@ -39,18 +38,7 @@ const serviceProgramPrefix = "program"
 // Start implements the [osservice.Interface] interface for [*program].
 func (prog *program) Start(_ osservice.Service) (err error) {
 	ctx := context.Background()
-	l := prog.log.With(slogutil.KeyPrefix, serviceProgramPrefix)
-
-	// Disable the dnsproxy logging for now, unless asked for debug output or
-	// using the "adguard_legacy" format.
-	//
-	// TODO(e.burkov):  Use [log/slog] in [dnsproxy] and make it configurable.
-	isVerbose := l.Enabled(ctx, slog.LevelDebug)
-	if isVerbose {
-		log.SetLevel(log.DEBUG)
-	} else if _, ok := l.Handler().(*slogutil.AdGuardLegacyHandler); !ok {
-		log.SetLevel(log.OFF)
-	}
+	l := prog.logger.With(slogutil.KeyPrefix, serviceProgramPrefix)
 
 	// TODO(a.garipov): Copy logs configuration from the WIP abt. slog.
 	l.InfoContext(
@@ -61,12 +49,12 @@ func (prog *program) Start(_ osservice.Service) (err error) {
 		"branch", version.Branch(),
 		"commit_time", version.CommitTime(),
 		"race", version.RaceEnabled,
-		"verbose", isVerbose,
+		"verbose", l.Enabled(ctx, slog.LevelDebug),
 	)
 
 	svcHdlr := newServiceHandler(prog.done, service.SignalHandlerShutdownTimeout)
 
-	dnsSvc, err := dnssvc.New(prog.conf.DNS.toInternal())
+	dnsSvc, err := dnssvc.New(prog.conf.DNS.toInternal(prog.logger))
 	if err != nil {
 		return fmt.Errorf("creating dns service: %w", err)
 	}
@@ -79,7 +67,7 @@ func (prog *program) Start(_ osservice.Service) (err error) {
 	svcHdlr.add(dnsSvc)
 	l.DebugContext(ctx, "dns service started")
 
-	go svcHdlr.handle(ctx, prog.log.With(slogutil.KeyPrefix, "service_handler"), prog.errCh)
+	go svcHdlr.handle(ctx, prog.logger.With(slogutil.KeyPrefix, "service_handler"), prog.errCh)
 
 	return nil
 }
@@ -105,7 +93,7 @@ func (prog *program) closeLogs() {
 		}
 	}
 
-	h := prog.log.Handler()
+	h := prog.logger.Handler()
 	if c, ok := h.(io.Closer); ok {
 		err := c.Close()
 		if err != nil {

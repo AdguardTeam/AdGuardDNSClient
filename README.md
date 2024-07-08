@@ -106,8 +106,7 @@ For building packages, you might need additional tools, such as GnuPG, MSI Tools
 
 ## <a href="#opts" id="opts" name="opts">Command-line options</a>
 
-Each option overrides the corresponding value provided by the configuration file
-and the environment.
+Each option overrides the corresponding value provided by the configuration file and the environment.
 
 ### <a href="#opts-help" id="opts-help" name="opts-help">Help</a>
 
@@ -134,10 +133,10 @@ Option `--version` makes AdGuard DNS Client print out the version of the `AdGuar
 
 ## <a href="#conf" id="conf" name="conf">Configuration</a>
 
-The YAML configuration file is described in the [`doc/configuration.md`] file, and there is also a sample configuration file `config.dist.yaml`. Some configuration parameters can also be overridden using the environment, see [`doc/environment.md`].
+The YAML configuration file is described in [its own article][conf], and there is also a sample configuration file `config.dist.yaml`.  Some configuration parameters can also be overridden using the [environment][env].
 
-[`doc/configuration.md`]: doc/configuration.md
-[`doc/environment.md`]:   doc/environment.md
+[conf]: https://adguard-dns.io/kb/dns-client/configuration/
+[env]:  https://adguard-dns.io/kb/dns-client/environment/
 
 ## <a href="#exit-codes" id="exit-codes" name="exit-codes">Exit codes</a>
 

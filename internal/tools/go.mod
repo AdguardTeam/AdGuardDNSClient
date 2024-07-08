@@ -30,6 +30,6 @@ require (
 	golang.org/x/mod v0.19.0 // indirect
 	golang.org/x/sync v0.7.0 // indirect
 	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/telemetry v0.0.0-20240703200001-5377abf9626c // indirect
+	golang.org/x/telemetry v0.0.0-20240704191351-af73eac657e1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

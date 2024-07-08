@@ -40,12 +40,6 @@ trailing_newlines() (
 	# NOTE: Adjust for your project.
 	git ls-files\
 		':!*.bmp'\
-		':!*.jpg'\
-		':!*.mmdb'\
-		':!*.png'\
-		':!*.tar.gz'\
-		':!*.webp'\
-		':!*.zip'\
 		| while read -r f
 		do
 			final_byte="$( tail -c -1 "$f" )"
@@ -62,12 +56,6 @@ trailing_whitespace() {
 	# NOTE: Adjust for your project.
 	git ls-files\
 		':!*.bmp'\
-		':!*.jpg'\
-		':!*.mmdb'\
-		':!*.png'\
-		':!*.tar.gz'\
-		':!*.webp'\
-		':!*.zip'\
 		| while read -r f
 		do
 			grep -e '[[:space:]]$' -n -- "$f"\

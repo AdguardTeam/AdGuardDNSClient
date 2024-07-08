@@ -43,7 +43,7 @@ func Main() {
 		conf:    conf,
 		done:    make(chan struct{}),
 		errCh:   make(chan error),
-		log:     l,
+		logger:  l,
 		logFile: logFile,
 	}
 
@@ -96,7 +96,7 @@ func check(ctx context.Context, prog *program, err error) {
 		return
 	}
 
-	prog.log.ErrorContext(ctx, "fatal error", slogutil.KeyError, err)
+	prog.logger.ErrorContext(ctx, "fatal error", slogutil.KeyError, err)
 	prog.closeLogs()
 
 	os.Exit(osutil.ExitCodeFailure)

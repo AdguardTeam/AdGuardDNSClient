@@ -13,12 +13,6 @@
 
 'stages':
 -
-    'Skip':
-        'manual': false
-        'final': false
-        'jobs':
-        - 'Skip'
--
     'Lint':
         'manual': false
         'final': false
@@ -43,32 +37,6 @@
         'final': false
         'jobs':
         - 'Publish'
-
-# The Skip stage terminates the plan execution prematurely if the main
-# repository has no changes.  This is needed to avoid builds triggered by
-# changes in the linked repositories, e.g. bamboo-deploy-publisher.
-#
-# TODO(e.burkov):  Remove this crutch, when the Bamboo version will support such
-# a configuration for triggers via YAML specs, see
-# https://docs.atlassian.com/bamboo-specs-docs/8.2.0/specs.html?yaml#triggering-selected-repositories.
-'Skip':
-    'key': 'SKIP'
-    'tasks':
-    -
-        'script':
-        - |-
-          #!/bin/sh
-
-          set -e -f -u -x
-
-          if [ "${bamboo.planRepository.revision}" = "${bamboo.planRepository.previousRevision}" ]
-          then
-              echo "aborting plan due to absent changes"
-
-              exit 0
-          fi
-    'requirements':
-    - 'adg-docker': 'true'
 
 'Lint':
     'docker':
@@ -374,6 +342,10 @@
                     ../../bamboo-deploy-publisher/deploy.sh\
                     adguarddns-client-github
 
+# TODO(e.burkov):  Limit repositories when the Bamboo version will support such
+# configuration for triggers via YAML specs.
+#
+# See https://docs.atlassian.com/bamboo-specs-docs/8.2.0/specs.html?yaml#triggering-selected-repositories.
 'branches':
     'create': 'for-pull-request'
     'delete':
@@ -442,11 +414,6 @@
     # All the other branches, including master.
     '^.*':
         'stages':
-        - 'Skip':
-            'manual': false
-            'final': false
-            'jobs':
-            - 'Skip'
         - 'Lint':
             'manual': false
             'final': false

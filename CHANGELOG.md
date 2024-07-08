@@ -28,6 +28,11 @@ NOTE: Add new changes BELOW THIS COMMENT.
 
 - Path to the executable is now validated when the application installs itself as a `launchd` service on macOS ([#2]).
 
+### Fixed
+
+- DNS proxy logs being written to `stderr` instead of `log.output` ([#1]).
+
+[#1]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/1
 [#2]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/2
 
 [go-1.22.5]: https://groups.google.com/g/golang-announce/c/gyb7aM1C9H4

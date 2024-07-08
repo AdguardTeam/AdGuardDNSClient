@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log/slog"
 	"net/netip"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
@@ -56,8 +57,9 @@ func (c *dnsConfig) validate() (err error) {
 
 // toInternal converts the DNS configuration to the internal representation.  c
 // must be valid.
-func (c *dnsConfig) toInternal() (conf *dnssvc.Config) {
+func (c *dnsConfig) toInternal(logger *slog.Logger) (conf *dnssvc.Config) {
 	return &dnssvc.Config{
+		Logger: logger,
 		// TODO(e.burkov):  Consider making configurable.
 		PrivateSubnets: netutil.SubnetSetFunc(netutil.IsLocallyServed),
 		Cache:          c.Cache.toInternal(),

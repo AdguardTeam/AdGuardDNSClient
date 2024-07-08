@@ -5,18 +5,23 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/netip"
 
 	"github.com/AdguardTeam/dnsproxy/proxy"
 	"github.com/AdguardTeam/dnsproxy/upstream"
 	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/AdguardTeam/golibs/service"
 )
 
 // DNSService is a service that provides DNS handling functionality.
 type DNSService struct {
+	// logger is used as the base logger for the DNS service.
+	logger *slog.Logger
+
 	// proxy forwards DNS requests.
 	proxy *proxy.Proxy
 
@@ -50,6 +55,7 @@ func New(conf *Config) (svc *DNSService, err error) {
 	}
 
 	svc = &DNSService{
+		logger:       conf.Logger.With(slogutil.KeyPrefix, "dnssvc"),
 		clientGetter: conf.ClientGetter,
 		clients:      newClientStorage(clients),
 	}
@@ -101,6 +107,8 @@ func newProxyConfig(
 	}
 
 	return &proxy.Config{
+		Logger:                    conf.Logger.With(slogutil.KeyPrefix, "dnsproxy"),
+		UpstreamMode:              proxy.UpstreamModeLoadBalance,
 		UDPListenAddr:             udp,
 		TCPListenAddr:             tcp,
 		UpstreamConfig:            general,
@@ -133,13 +141,16 @@ var _ service.Interface = (*DNSService)(nil)
 
 // Start implements the [service.Interface] interface for *DNSService.
 func (svc *DNSService) Start(ctx context.Context) (err error) {
+	svc.logger.DebugContext(ctx, "starting")
+
 	return svc.proxy.Start(ctx)
 }
 
 // Shutdown implements the [service.Interface] interface for *DNSService.
 func (svc *DNSService) Shutdown(ctx context.Context) (err error) {
-	var errs []error
+	svc.logger.DebugContext(ctx, "shutting down")
 
+	var errs []error
 	err = svc.proxy.Shutdown(ctx)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("stopping proxy: %w", err))

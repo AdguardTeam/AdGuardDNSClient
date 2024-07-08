@@ -10,6 +10,7 @@ import (
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/dnsproxy/proxy"
+	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/AdguardTeam/golibs/testutil"
 	"github.com/miekg/dns"
@@ -180,6 +181,7 @@ func TestDNSService(t *testing.T) {
 	// Create and start the service.
 
 	svc, err := dnssvc.New(&dnssvc.Config{
+		Logger:         slogutil.NewDiscardLogger(),
 		PrivateSubnets: privateNets,
 		Bootstrap:      &dnssvc.BootstrapConfig{},
 		Cache: &dnssvc.CacheConfig{
