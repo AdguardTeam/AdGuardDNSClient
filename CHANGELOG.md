@@ -30,12 +30,16 @@ NOTE: Add new changes BELOW THIS COMMENT.
 
 ### Fixed
 
+- The `syslog` log output on macOS ([#3]).
+
+  **NOTE:** The implementation is actually a workaround for a known [Go issue][go-59229], and uses the `/usr/bin/logger` utility. This approach is suboptimal and will be improved once the Go issue is resolved.
 - DNS proxy logs being written to `stderr` instead of `log.output` ([#1]).
 
 [#1]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/1
 [#2]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/2
 
 [go-1.22.5]: https://groups.google.com/g/golang-announce/c/gyb7aM1C9H4
+[go-59229]:  https://github.com/golang/go/issues/59229
 
 <!--
 NOTE: Add new changes ABOVE THIS COMMENT.

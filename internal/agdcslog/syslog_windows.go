@@ -23,17 +23,18 @@ const (
 	debugEventID   = 4
 )
 
-// systemLogger is a wrapper around [eventlog.Log].
+// systemLogger is the implementation of the [SystemLogger] interface for
+// Windows.
 type systemLogger struct {
 	writer *eventlog.Log
 }
 
-// newSystemLogger returns a windows specific system logger.
+// newSystemLogger returns a Windows-specific system logger.
 //
 // Note that the eventlog src is the same as the service name.  Otherwise, we
 // will get "the description for event id cannot be found" warning in every log
 // record.
-func newSystemLogger(src string) (l Logger, err error) {
+func newSystemLogger(src string) (l SystemLogger, err error) {
 	const events = eventlog.Info | eventlog.Warning | eventlog.Error
 
 	// Continue if we receive "registry key already exists" or if we get
@@ -59,30 +60,30 @@ func newSystemLogger(src string) (l Logger, err error) {
 }
 
 // type check
-var _ Logger = (*systemLogger)(nil)
+var _ SystemLogger = (*systemLogger)(nil)
 
-// Debug implements [Logger] interface for *systemLogger.
+// Debug implements the [SystemLogger] interface for *systemLogger.
 func (l *systemLogger) Debug(msg string) (err error) {
 	// Event Log doesn't have Debug log level, use Info.
 	return l.writer.Info(debugEventID, msg)
 }
 
-// Info implements [Logger] interface for *systemLogger.
+// Info implements the [SystemLogger] interface for *systemLogger.
 func (l *systemLogger) Info(msg string) (err error) {
 	return l.writer.Info(infoEventID, msg)
 }
 
-// Warning implements [Logger] interface for *systemLogger.
+// Warning implements the [SystemLogger] interface for *systemLogger.
 func (l *systemLogger) Warning(msg string) (err error) {
 	return l.writer.Warning(warningEventID, msg)
 }
 
-// Error implements [Logger] interface for *systemLogger.
+// Error implements the [SystemLogger] interface for *systemLogger.
 func (l *systemLogger) Error(msg string) (err error) {
 	return l.writer.Error(errorEventID, msg)
 }
 
-// Close implements [Logger] interface for *systemLogger.
+// Close implements the [SystemLogger] interface for *systemLogger.
 func (l *systemLogger) Close() (err error) {
 	return l.writer.Close()
 }

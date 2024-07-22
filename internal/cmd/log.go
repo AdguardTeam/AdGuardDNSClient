@@ -154,7 +154,7 @@ func newSystemLogger(isVerbose bool) (l *slog.Logger, err error) {
 		lvl = slog.LevelDebug
 	}
 
-	h := agdcslog.NewSystemHandler(sl, &slog.HandlerOptions{
+	h := agdcslog.NewSyslogHandler(sl, &slog.HandlerOptions{
 		Level: lvl,
 	})
 

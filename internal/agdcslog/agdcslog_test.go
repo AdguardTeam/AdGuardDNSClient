@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockLogger is a mock implementation of [agdcslog.Logger] interface for tests.
+// mockLogger is a mock implementation of [agdcslog.SystemLogger] interface for tests.
 type mockLogger struct {
 	onDebug   func(msg string) (err error)
 	onInfo    func(msg string) (err error)
@@ -43,34 +43,34 @@ func NewMockLogger() (l *mockLogger) {
 }
 
 // type check
-var _ agdcslog.Logger = (*mockLogger)(nil)
+var _ agdcslog.SystemLogger = (*mockLogger)(nil)
 
-// Debug implements [agdcslog.Logger] interface for *mockLogger.
+// Debug implements [agdcslog.SystemLogger] interface for *mockLogger.
 func (l *mockLogger) Debug(msg string) (err error) {
 	return l.onDebug(msg)
 }
 
-// Info implements [agdcslog.Logger] interface for *mockLogger.
+// Info implements [agdcslog.SystemLogger] interface for *mockLogger.
 func (l *mockLogger) Info(msg string) (err error) {
 	return l.onInfo(msg)
 }
 
-// Warning implements [agdcslog.Logger] interface for *mockLogger.
+// Warning implements [agdcslog.SystemLogger] interface for *mockLogger.
 func (l *mockLogger) Warning(msg string) (err error) {
 	return l.onWarning(msg)
 }
 
-// Error implements [agdcslog.Logger] interface for *mockLogger.
+// Error implements [agdcslog.SystemLogger] interface for *mockLogger.
 func (l *mockLogger) Error(msg string) (err error) {
 	return l.onError(msg)
 }
 
-// Close implements [agdcslog.Logger] interface for *mockLogger.
+// Close implements [agdcslog.SystemLogger] interface for *mockLogger.
 func (l *mockLogger) Close() (err error) {
 	return l.onClose()
 }
 
-func TestSystemHandler_Handle(t *testing.T) {
+func TestSyslogHandler_Handle(t *testing.T) {
 	var (
 		mu     = sync.Mutex{}
 		output = &bytes.Buffer{}
@@ -91,7 +91,7 @@ func TestSystemHandler_Handle(t *testing.T) {
 	l.onError = outputWrite
 	l.onDebug = outputWrite
 
-	handler := agdcslog.NewSystemHandler(l, &slog.HandlerOptions{
+	handler := agdcslog.NewSyslogHandler(l, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 
@@ -153,7 +153,7 @@ func TestSystemHandler_Handle(t *testing.T) {
 	}
 }
 
-func TestSystemHandler_Handle_race(t *testing.T) {
+func TestSyslogHandler_Handle_race(t *testing.T) {
 	var (
 		mu     = sync.Mutex{}
 		output = &bytes.Buffer{}
@@ -169,7 +169,7 @@ func TestSystemHandler_Handle_race(t *testing.T) {
 		return nil
 	}
 
-	h := agdcslog.NewSystemHandler(l, &slog.HandlerOptions{
+	h := agdcslog.NewSyslogHandler(l, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 
@@ -182,11 +182,11 @@ func TestSystemHandler_Handle_race(t *testing.T) {
 	for i := 0; i < numGoroutine; i++ {
 		wg.Add(1)
 
-		go func(i int) {
+		go func() {
 			defer wg.Done()
 
 			logger.Info("test message", "attr", "abc")
-		}(i)
+		}()
 	}
 
 	wg.Wait()
@@ -203,11 +203,11 @@ func TestSystemHandler_Handle_race(t *testing.T) {
 // errSink is a sink for benchmark results.
 var errSink error
 
-func BenchmarkSystemHandler_Handle(b *testing.B) {
+func BenchmarkSyslogHandler_Handle(b *testing.B) {
 	l := NewMockLogger()
 	l.onInfo = func(_ string) (_ error) { return nil }
 
-	h := agdcslog.NewSystemHandler(l, &slog.HandlerOptions{
+	h := agdcslog.NewSyslogHandler(l, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 
@@ -226,10 +226,9 @@ func BenchmarkSystemHandler_Handle(b *testing.B) {
 
 	require.NoError(b, errSink)
 
-	// Most recent result, on a ThinkPad P15s with a Intel Core i7-10510U CPU:
-	//	goos: linux
-	//	goarch: amd64
-	//	pkg: github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog
-	//	cpu: Intel(R) Core(TM) i7-10510U CPU @ 1.80GHz
-	//	BenchmarkSystemHandler_Handle-8   	 2595381	       448.2 ns/op	      64 B/op	       1 allocs/op
+	// goos: darwin
+	// goarch: amd64
+	// pkg: github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog
+	// cpu: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+	// BenchmarkSyslogHandler_Handle-12		2365461		501.1 ns/op		64 B/op		1 allocs/op
 }

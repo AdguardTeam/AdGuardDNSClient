@@ -40,33 +40,18 @@ func (h *bufferedTextHandler) reset() {
 	h.buffer.Reset()
 }
 
-// Logger is a platform-specific system Logger.
-type Logger interface {
-	Debug(msg string) (err error)
-	Info(msg string) (err error)
-	Warning(msg string) (err error)
-	Error(msg string) (err error)
-	Close() (err error)
-}
-
-// NewSystemLogger returns a platform-specific system logger that writes to
-// system log.  name is the service name.
-func NewSystemLogger(name string) (l Logger, err error) {
-	return newSystemLogger(name)
-}
-
-// SystemHandler is a [slog.Handler] that writes to system log.
-type SystemHandler struct {
-	logger      Logger
+// SyslogHandler is a [slog.Handler] that writes to system log.
+type SyslogHandler struct {
+	logger      SystemLogger
 	level       slog.Leveler
 	bufTextPool *syncutil.Pool[bufferedTextHandler]
 	attrs       []slog.Attr
 }
 
-// NewSystemHandler returns an initialized SystemHandler that writes to system
+// NewSyslogHandler returns an initialized SyslogHandler that writes to system
 // log.  opts must not be nil and contain Level.
-func NewSystemHandler(logger Logger, opts *slog.HandlerOptions) (h *SystemHandler) {
-	return &SystemHandler{
+func NewSyslogHandler(logger SystemLogger, opts *slog.HandlerOptions) (h *SyslogHandler) {
+	return &SyslogHandler{
 		logger: logger,
 		level:  opts.Level,
 		bufTextPool: syncutil.NewPool(func() (bufTextHdlr *bufferedTextHandler) {
@@ -77,15 +62,15 @@ func NewSystemHandler(logger Logger, opts *slog.HandlerOptions) (h *SystemHandle
 }
 
 // type check
-var _ slog.Handler = (*SystemHandler)(nil)
+var _ slog.Handler = (*SyslogHandler)(nil)
 
-// Enabled implements the [slog.Handler] interface for *SystemHandler.
-func (h *SystemHandler) Enabled(_ context.Context, level slog.Level) (enabled bool) {
+// Enabled implements the [slog.Handler] interface for *SyslogHandler.
+func (h *SyslogHandler) Enabled(_ context.Context, level slog.Level) (enabled bool) {
 	return level >= h.level.Level()
 }
 
-// Handle implements the [slog.Handler] interface for *SystemHandler.
-func (h *SystemHandler) Handle(ctx context.Context, rec slog.Record) (err error) {
+// Handle implements the [slog.Handler] interface for *SyslogHandler.
+func (h *SyslogHandler) Handle(ctx context.Context, rec slog.Record) (err error) {
 	bufTextHdlr := h.bufTextPool.Get()
 	defer h.bufTextPool.Put(bufTextHdlr)
 
@@ -126,9 +111,9 @@ func (h *SystemHandler) Handle(ctx context.Context, rec slog.Record) (err error)
 	return err
 }
 
-// WithAttrs implements the [slog.Handler] interface for *SystemHandler.
-func (h *SystemHandler) WithAttrs(attrs []slog.Attr) (handler slog.Handler) {
-	return &SystemHandler{
+// WithAttrs implements the [slog.Handler] interface for *SyslogHandler.
+func (h *SyslogHandler) WithAttrs(attrs []slog.Attr) (handler slog.Handler) {
+	return &SyslogHandler{
 		logger:      h.logger,
 		level:       h.level,
 		bufTextPool: h.bufTextPool,
@@ -136,12 +121,12 @@ func (h *SystemHandler) WithAttrs(attrs []slog.Attr) (handler slog.Handler) {
 	}
 }
 
-// WithGroup implements the [slog.Handler] interface for *SystemHandler.
-func (h *SystemHandler) WithGroup(name string) (handler slog.Handler) {
+// WithGroup implements the [slog.Handler] interface for *SyslogHandler.
+func (h *SyslogHandler) WithGroup(name string) (handler slog.Handler) {
 	return h
 }
 
 // Close closes an underlying system logger.
-func (h *SystemHandler) Close() (err error) {
+func (h *SyslogHandler) Close() (err error) {
 	return h.logger.Close()
 }
