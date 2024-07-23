@@ -32,23 +32,6 @@ fi
 
 set -e -f -u
 
-# bump_minor is an awk program that reads a minor release version, increments
-# the minor part of it, and prints the next version.
-#
-# shellcheck disable=SC2016
-bump_minor='/^v[0-9]+\.[0-9]+\.0$/ {
-	print($1 "." $2 + 1 ".0");
-
-	next;
-}
-
-{
-	printf("invalid minor release version: \"%s\"\n", $0);
-
-	exit 1;
-}'
-readonly bump_minor
-
 # get_last_minor_zero returns the last new minor release.
 get_last_minor_zero() {
 	# List all tags.  Then, select those that fit the pattern of a new minor

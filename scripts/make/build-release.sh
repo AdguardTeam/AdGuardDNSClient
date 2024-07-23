@@ -328,6 +328,10 @@ do
 	# "* windows *", which doesn't match, so nothing is removed.
 	#
 	# See https://stackoverflow.com/a/43912605/1892060.
+	#
+	# TODO(e.burkov):  Simplify, use some idiomatic approach.
+	#
+	# shellcheck disable=SC2295
 	if [ "${arches##* $arch *}" != '' ]
 	then
 		log "$arch excluded, continuing"

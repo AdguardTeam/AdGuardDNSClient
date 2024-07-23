@@ -58,6 +58,11 @@ ENV = env\
 
 # Keep the line above blank.
 
+ENV_MISC = env\
+	VERBOSE="$(VERBOSE.MACRO)"\
+
+# Keep the line above blank.
+
 # Keep this target first, so that a naked make invocation triggers a
 # full build.
 build: go-deps go-build
@@ -86,3 +91,6 @@ go-os-check:
 txt-lint: ; $(ENV) "$(SHELL)" ./scripts/make/txt-lint.sh
 
 build-release: ; $(ENV) "$(SHELL)" ./scripts/make/build-release.sh
+
+md-lint:  ; $(ENV_MISC) "$(SHELL)" ./scripts/make/md-lint.sh
+sh-lint:  ; $(ENV_MISC) "$(SHELL)" ./scripts/make/sh-lint.sh

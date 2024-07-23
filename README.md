@@ -1,5 +1,7 @@
 # AdGuard DNS Client
 
+<!-- markdownlint-disable MD033 -->
+
 <div align="center">
     <picture>
         <source media="(prefers-color-scheme: dark)" srcset="https://cdn.adtidy.org/website/images/AdGuardDNS_light.svg">
@@ -10,6 +12,8 @@
 <p align="center">
     <img alt="Screenshot showing the logs of AdGuard DNS Client" src="https://cdn.adtidy.org/content/illustrations/adguard_dns_client.png" width="800"/>
 </p>
+
+<!-- markdownlint-enable MD033 -->
 
 A cross-platform lightweight DNS client for [AdGuard DNS]. It operates as a DNS server that forwards DNS requests to the corresponding upstream resolvers.
 

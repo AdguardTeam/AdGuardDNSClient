@@ -3,7 +3,7 @@
 # This comment is used to simplify checking local copies of the script.  Bump
 # this number every time a significant change is made to this script.
 #
-# AdGuard-Project-Version: 6
+# AdGuard-Project-Version: 8
 
 verbose="${VERBOSE:-0}"
 readonly verbose
@@ -35,8 +35,15 @@ set -f -u
 # blocklist_imports is a simple check against unwanted packages.  The following
 # packages are banned:
 #
-#   *  Packages errors and log are replaced by our own packages in the
+#   *  Package errors is replaced by our own package in the
 #      github.com/AdguardTeam/golibs module.
+#
+#   *  Packages golang.org/x/exp/slices and golang.org/x/net/context have been
+#      moved into stdlib.
+#
+#   *  Packages log and github.com/AdguardTeam/golibs/log are replaced by
+#      stdlib's new package log/slog and AdGuard's new utilities package
+#      github.com/AdguardTeam/golibs/logutil/slogutil.
 #
 #   *  Package io/ioutil is soft-deprecated.
 #
@@ -47,13 +54,9 @@ set -f -u
 #
 #      See https://github.com/golang/go/issues/45200.
 #
-#   *  Package sort is replaced by golang.org/x/exp/slices.
+#   *  Package sort is replaced by package slices.
 #
 #   *  Package unsafe is… unsafe.
-#
-#   *  Package golang.org/x/exp/slices has been moved into stdlib.
-#
-#   *  Package golang.org/x/net/context has been moved into stdlib.
 #
 # Currently, the only standard exception are files generated from protobuf
 # schemas, which use package reflect.  If your project needs more exceptions,
