@@ -22,16 +22,14 @@ var _ validator = (*fallbackConfig)(nil)
 
 // validate implements the [validator] interface for *fallbackConfig.
 func (c *fallbackConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "fallback: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	var errs []error
 
 	if c.Timeout.Duration <= 0 {
-		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
+		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errors.ErrNotPositive)
 		errs = append(errs, err)
 	}
 
@@ -72,7 +70,7 @@ type urlConfigs []*urlConfig
 // violates the [validator.validate] contract.
 func (c urlConfigs) validate() (err error) {
 	if len(c) == 0 {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	var errs []error
@@ -80,9 +78,9 @@ func (c urlConfigs) validate() (err error) {
 	for i, addr := range c {
 		switch {
 		case addr == nil:
-			err = errNoValue
+			err = errors.ErrNoValue
 		case addr.Address == "":
-			err = errEmptyValue
+			err = errors.ErrEmptyValue
 		default:
 			continue
 		}

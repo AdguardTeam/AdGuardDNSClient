@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/AdguardTeam/golibs/errors"
 )
 
@@ -15,13 +17,16 @@ var _ validator = (*debugConfig)(nil)
 
 // validate implements the [validator] interface for *debugConfig.
 func (c *debugConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "debug: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
-	return c.Pprof.validate()
+	err = c.Pprof.validate()
+	if err != nil {
+		return fmt.Errorf("pprof: %w", err)
+	}
+
+	return nil
 }
 
 // pprofConfig is the configuration for Go-provided runtime profiling tool.
@@ -38,10 +43,8 @@ var _ validator = (*pprofConfig)(nil)
 
 // validate implements the [validator] interface for *pprofConfig.
 func (c *pprofConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "pprof: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	return nil

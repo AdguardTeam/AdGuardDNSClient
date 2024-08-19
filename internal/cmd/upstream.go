@@ -53,20 +53,19 @@ var _ validator = (*upstreamConfig)(nil)
 
 // validate implements the [validator] interface for *upstreamConfig.
 func (c *upstreamConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "upstream: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	var errs []error
 
 	if c.Timeout.Duration <= 0 {
-		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
+		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errors.ErrNotPositive)
 		errs = append(errs, err)
 	}
 
 	if err = c.Groups.validate(); err != nil {
+		err = fmt.Errorf("groups: %w", err)
 		errs = append(errs, err)
 	}
 
@@ -126,10 +125,8 @@ var _ validator = (upstreamGroupsConfig)(nil)
 
 // validate implements the [validator] interface for upstreamGroupsConfig.
 func (c upstreamGroupsConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "groups: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	var errs []error
@@ -179,13 +176,13 @@ type upstreamGroupConfig struct {
 // configuration that should have no match criteria.
 func (c *upstreamGroupConfig) validateAsPredefined() (err error) {
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	var errs []error
 
 	if c.Address == "" {
-		err = fmt.Errorf("address: %w", errNoValue)
+		err = fmt.Errorf("address: %w", errors.ErrNoValue)
 		errs = append(errs, err)
 	}
 
@@ -201,13 +198,13 @@ func (c *upstreamGroupConfig) validateAsPredefined() (err error) {
 // configuration for group named n within the set s.
 func (c *upstreamGroupConfig) validateAsCustom(s matchSet, n agdc.UpstreamGroupName) (err error) {
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	var errs []error
 
 	if c.Address == "" {
-		err = fmt.Errorf("address: %w", errNoValue)
+		err = fmt.Errorf("address: %w", errors.ErrNoValue)
 		errs = append(errs, err)
 	}
 
@@ -236,9 +233,9 @@ type upstreamMatchConfig struct {
 func (c *upstreamMatchConfig) validate(s matchSet, name agdc.UpstreamGroupName) (err error) {
 	switch {
 	case c == nil:
-		return errNoValue
+		return errors.ErrNoValue
 	case *c == (upstreamMatchConfig{}):
-		return errEmptyValue
+		return errors.ErrEmptyValue
 	default:
 		return c.validateValues(s, name)
 	}

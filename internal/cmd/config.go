@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcos"
+	"github.com/AdguardTeam/golibs/container"
 	"github.com/AdguardTeam/golibs/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -69,8 +70,7 @@ func handleServiceConfig(action serviceAction) (conf *configuration, err error) 
 
 		err = conf.validate()
 		if err != nil {
-			// Don't wrap the error since it's informative enough as is.
-			return nil, err
+			return nil, fmt.Errorf("configuration: %w", err)
 		}
 	case serviceActionInstall:
 		err = agdcos.ValidateExecPath(execPath)
@@ -122,26 +122,35 @@ var _ validator = (*configuration)(nil)
 
 // validate implements the [validator] interface for *configuration.
 func (c *configuration) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "configuration: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	err = c.SchemaVersion.validate()
 	if err != nil {
 		// Don't validate the rest of the configuration of invalid schema
 		// version.
-		return err
+		return fmt.Errorf("schema_version: %w", err)
 	}
 
+	validators := container.KeyValues[string, validator]{{
+		Key:   "dns",
+		Value: c.DNS,
+	}, {
+		Key:   "log",
+		Value: c.Log,
+	}, {
+		Key:   "debug",
+		Value: c.Debug,
+	}}
+
 	var errs []error
-	for _, v := range []validator{
-		c.DNS,
-		c.Log,
-		c.Debug,
-	} {
-		errs = append(errs, v.validate())
+	for _, v := range validators {
+		err = v.Value.validate()
+		if err != nil {
+			err = fmt.Errorf("%s: %w", v.Key, err)
+			errs = append(errs, err)
+		}
 	}
 
 	return errors.Join(errs...)
@@ -160,11 +169,9 @@ var _ validator = (schemaVersion)(currentSchemaVersion)
 
 // validate implements the [validator] interface for schemaVersion.
 func (v schemaVersion) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "schema_version: %w", v) }()
-
 	switch {
 	case v == 0:
-		return errMustBePositive
+		return errors.ErrNotPositive
 	case v > currentSchemaVersion:
 		return fmt.Errorf("got %d, most recent is %d", currentSchemaVersion, v)
 	default:

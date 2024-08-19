@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/osutil"
 	osservice "github.com/kardianos/service"
 )
@@ -54,7 +55,7 @@ func (a *serviceAction) Set(value string) (err error) {
 
 		return nil
 	default:
-		return errUnknownAction
+		return errors.ErrBadEnumValue
 	}
 }
 
@@ -84,7 +85,7 @@ func control(
 	case serviceActionUninstall:
 		err = svc.Uninstall()
 	default:
-		panic(errUnknownAction)
+		panic(fmt.Errorf("action %q: %w", action, errors.ErrBadEnumValue))
 	}
 
 	if err != nil {

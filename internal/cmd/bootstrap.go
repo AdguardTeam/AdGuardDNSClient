@@ -32,16 +32,14 @@ var _ validator = (*bootstrapConfig)(nil)
 
 // validate implements the [validator] interface for *bootstrapConfig.
 func (c *bootstrapConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "bootstrap: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	var errs []error
 
 	if c.Timeout.Duration <= 0 {
-		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errMustBePositive)
+		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errors.ErrNotPositive)
 		errs = append(errs, err)
 	}
 

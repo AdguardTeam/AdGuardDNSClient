@@ -17,10 +17,8 @@ var _ validator = (*serverConfig)(nil)
 
 // validate implements the [validator] interface for *serverConfig.
 func (c *serverConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "server: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	err = c.ListenAddresses.validate()

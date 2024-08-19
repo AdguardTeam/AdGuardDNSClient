@@ -36,10 +36,8 @@ var _ validator = (*cacheConfig)(nil)
 
 // validate implements the [validator] interface for *cacheConfig.
 func (c *cacheConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "cache: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	} else if !c.Enabled {
 		// Don't validate cache settings if it's disabled.
 		return nil
@@ -51,7 +49,7 @@ func (c *cacheConfig) validate() (err error) {
 	// is supported by proxy.
 
 	if c.Size == 0 {
-		err = fmt.Errorf("got size %s: %w", c.Size, errMustBePositive)
+		err = fmt.Errorf("got size %s: %w", c.Size, errors.ErrNotPositive)
 		errs = append(errs, err)
 	} else if c.Size > math.MaxInt {
 		err = fmt.Errorf("got size %s: must be less or equal to %d", c.Size, math.MaxInt)
@@ -59,7 +57,7 @@ func (c *cacheConfig) validate() (err error) {
 	}
 
 	if c.ClientSize == 0 {
-		err = fmt.Errorf("got client_size %s: %w", c.ClientSize, errMustBePositive)
+		err = fmt.Errorf("got client_size %s: %w", c.ClientSize, errors.ErrNotPositive)
 		errs = append(errs, err)
 	} else if c.ClientSize > math.MaxInt {
 		err = fmt.Errorf("got size %s: must be less or equal to %d", c.ClientSize, math.MaxInt)

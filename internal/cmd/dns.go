@@ -6,6 +6,7 @@ import (
 	"net/netip"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
+	"github.com/AdguardTeam/golibs/container"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/netutil"
 )
@@ -33,23 +34,34 @@ var _ validator = (*dnsConfig)(nil)
 
 // validate implements the [validator] interface for *dnsConfig.
 func (c *dnsConfig) validate() (err error) {
-	defer func() { err = errors.Annotate(err, "dns: %w") }()
-
 	if c == nil {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
-	validators := []validator{
-		c.Cache,
-		c.Server,
-		c.Bootstrap,
-		c.Upstream,
-		c.Fallback,
-	}
+	validators := container.KeyValues[string, validator]{{
+		Key:   "cache",
+		Value: c.Cache,
+	}, {
+		Key:   "server",
+		Value: c.Server,
+	}, {
+		Key:   "bootstrap",
+		Value: c.Bootstrap,
+	}, {
+		Key:   "upstream",
+		Value: c.Upstream,
+	}, {
+		Key:   "fallback",
+		Value: c.Fallback,
+	}}
 
 	var errs []error
 	for _, v := range validators {
-		errs = append(errs, v.validate())
+		err = v.Value.validate()
+		if err != nil {
+			err = fmt.Errorf("%s: %w", v.Key, err)
+			errs = append(errs, err)
+		}
 	}
 
 	return errors.Join(errs...)
@@ -78,15 +90,16 @@ type ipPortConfig struct {
 	Address netip.AddrPort `yaml:"address"`
 }
 
-// validate returns an error if c is not valid.  It doesn't include its own name
-// into an error to be used in different configuration sections, and therefore
-// violates the [validator.validate] contract.
+// type check
+var _ validator = (*ipPortConfig)(nil)
+
+// validate implements the [validator] interface for *ipPortConfig.
 func (c *ipPortConfig) validate() (err error) {
 	switch {
 	case c == nil:
-		return errNoValue
+		return errors.ErrNoValue
 	case c.Address == netip.AddrPort{}:
-		return fmt.Errorf("address: %w", errEmptyValue)
+		return fmt.Errorf("address: %w", errors.ErrEmptyValue)
 	default:
 		return nil
 	}
@@ -107,12 +120,13 @@ func (c ipPortConfigs) toInternal() (addrs []netip.AddrPort) {
 	return addrs
 }
 
-// validate returns an error if c is not valid.  It doesn't include its own name
-// into an error to be used in different configuration sections, and therefore
-// violates the [validator.validate] contract.
+// type check
+var _ validator = (ipPortConfigs)(nil)
+
+// validate implements the [validator] interface for ipPortConfigs.
 func (c ipPortConfigs) validate() (res error) {
 	if len(c) == 0 {
-		return errNoValue
+		return errors.ErrNoValue
 	}
 
 	var errs []error

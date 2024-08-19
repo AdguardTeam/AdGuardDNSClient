@@ -18,7 +18,7 @@ NOTE: Add new changes BELOW THIS COMMENT.
 
 ### Security
 
-- Go version has been updated to prevent the possibility of exploiting the Go vulnerabilities fixed in [Go 1.22.5][go-1.22.5].
+- Go version has been updated to prevent the possibility of exploiting the Go vulnerabilities fixed in [Go 1.22.6][go-1.22.6].
 
 ### Added
 
@@ -38,7 +38,7 @@ NOTE: Add new changes BELOW THIS COMMENT.
 [#1]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/1
 [#2]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/2
 
-[go-1.22.5]: https://groups.google.com/g/golang-announce/c/gyb7aM1C9H4
+[go-1.22.6]: https://groups.google.com/g/golang-announce/c/X4q_-Wf-5g4
 [go-59229]:  https://github.com/golang/go/issues/59229
 
 <!--

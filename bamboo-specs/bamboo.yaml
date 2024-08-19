@@ -1,12 +1,15 @@
 ---
+# This comment is used to simplify checking local copies of the Makefile.  Bump
+# this number every time a significant change is made to this Makefile.
+#
+# AdGuard-Project-Version: 2
 'version': 2
 'plan':
     'project-key': 'GO'
     'key': 'DNSCLIENT'
     'name': 'AdGuardDNSClient'
 'variables':
-    'dockerFpm': 'alanfranz/fpm-within-docker:ubuntu-bionic'
-    'dockerGo': 'adguard/go-builder:1.22.5--1'
+    'dockerGo': 'adguard/go-builder:1.22.6--1'
     'dockerMisc': 'adguard/go-misc-tools:1.0'
     'maintainer': 'Adguard DNS Team'
     'name': 'AdGuardDNSClient'
@@ -386,7 +389,7 @@
     # images.  The "candidate" pseudo-channel is used to generate version.
     '^rc-v[0-9]+\.[0-9]+\.[0-9]+':
         'variables':
-            'dockerGo': 'adguard/go-builder:1.22.5-1'
+            'dockerGo': 'adguard/go-builder:1.22.6-1'
             'dockerMisc': 'adguard/go-misc-tools:1.0'
             'channel': 'candidate'
         'stages':
@@ -419,7 +422,7 @@
         # Set the default release channel on the final branch to release, as
         # these are the ones that actually get released.
         'variables':
-            'dockerGo': 'adguard/go-builder:1.22.5--1'
+            'dockerGo': 'adguard/go-builder:1.22.6--1'
             'dockerMisc': 'adguard/go-misc-tools:1.0'
             'channel': 'release'
         'stages':
