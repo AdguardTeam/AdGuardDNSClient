@@ -15,8 +15,7 @@
 verbose="${VERBOSE:-0}"
 readonly verbose
 
-if [ "$verbose" -gt '1' ]
-then
+if [ "$verbose" -gt '1' ]; then
 	env
 	set -x
 fi
@@ -36,8 +35,7 @@ set -e -f -u
 # Function log is an echo wrapper that writes to stderr if the caller requested
 # verbosity level greater than 0.  Otherwise, it does nothing.
 log() {
-	if [ "$verbose" -gt '0' ]
-	then
+	if [ "$verbose" -gt '0' ]; then
 		# Don't use quotes to get word splitting.
 		echo "$1" 1>&2
 	fi
@@ -53,9 +51,8 @@ readonly channel
 # Check VERSION against the default value from the Makefile.  If it is that, use
 # the version calculation script.
 version="${VERSION:-}"
-if [ "$version" = 'v0.0.0' ] || [ "$version" = '' ]
-then
-	version="$( sh ./scripts/make/version.sh )"
+if [ "$version" = 'v0.0.0' ] || [ "$version" = '' ]; then
+	version="$(sh ./scripts/make/version.sh)"
 fi
 readonly version
 
@@ -64,8 +61,7 @@ log "version '$version'"
 
 # Check architecture and OS limiters.  Add spaces to the local versions for
 # better pattern matching.
-if [ "${ARCH:-}" != '' ]
-then
+if [ "${ARCH:-}" != '' ]; then
 	log "arches: '$ARCH'"
 	arches=" $ARCH "
 else
@@ -73,8 +69,7 @@ else
 fi
 readonly arches
 
-if [ "${OS:-}" != '' ]
-then
+if [ "${OS:-}" != '' ]; then
 	log "oses: '$OS'"
 	oses=" $OS "
 else
@@ -83,8 +78,7 @@ fi
 readonly oses
 
 # Require the gpg key and passphrase to be set if the signing is required.
-if [ "$sign" -eq '1' ]
-then
+if [ "$sign" -eq '1' ]; then
 	gpg_key_passphrase="${GPG_KEY_PASSPHRASE:?please set GPG_KEY_PASSPHRASE or unset SIGN}"
 	gpg_key="${GPG_KEY:?please set GPG_KEY or unset SIGN}"
 	signer_api_key="${SIGNER_API_KEY:?please set SIGNER_API_KEY or unset SIGN}"
@@ -106,12 +100,9 @@ log "checking tools"
 # Make sure we fail gracefully if one of the tools we need is missing.  Use
 # alternatives when available.
 use_shasum='0'
-for tool in gpg gzip sed sha256sum tar zip
-do
-	if ! command -v "$tool" > /dev/null
-	then
-		if [ "$tool" = 'sha256sum' ] && command -v 'shasum' > /dev/null
-		then
+for tool in gpg gzip sed sha256sum tar zip; do
+	if ! command -v "$tool" >/dev/null; then
+		if [ "$tool" = 'sha256sum' ] && command -v 'shasum' >/dev/null; then
 			# macOS doesn't have sha256sum installed by default, but it does
 			# have shasum.
 			log 'replacing sha256sum with shasum -a 256'
@@ -144,8 +135,7 @@ readonly platforms
 # system.
 sign() {
 	# Only sign if needed.
-	if [ "$sign" -ne '1' ]
-	then
+	if [ "$sign" -ne '1' ]; then
 		return
 	fi
 
@@ -154,15 +144,10 @@ sign() {
 	sign_os="$1"
 	sign_bin_path="$2"
 
-	if [ "$sign_os" != 'windows' ]
-	then
-		gpg\
-			--default-key "$gpg_key"\
-			--detach-sig\
-			--passphrase "$gpg_key_passphrase"\
-			--pinentry-mode loopback\
-			-q\
-			"$sign_bin_path"\
+	if [ "$sign_os" != 'windows' ]; then
+		gpg --default-key "$gpg_key" \
+			--detach-sig --passphrase "$gpg_key_passphrase" \
+			--pinentry-mode loopback -q "$sign_bin_path" \
 			;
 
 		return
@@ -170,12 +155,10 @@ sign() {
 
 	signed_bin_path="${sign_bin_path}.signed"
 
-	env\
-		INPUT_FILE="$sign_bin_path"\
-		OUTPUT_FILE="$signed_bin_path"\
-		SIGNER_API_KEY="$signer_api_key"\
-		"$deploy_script_path" sign-executable\
-		;
+	env INPUT_FILE="$sign_bin_path" \
+		OUTPUT_FILE="$signed_bin_path" \
+		SIGNER_API_KEY="$signer_api_key" \
+		"$deploy_script_path" sign-executable
 
 	mv "$signed_bin_path" "$sign_bin_path"
 }
@@ -190,12 +173,11 @@ build_msi() {
 	msi_out="${2:?please set installer output}"
 	msi_dir="${3:?please set path to executable}"
 
-	case "$msi_exe_arch"
-	in
-	('386')
+	case "$msi_exe_arch" in
+	'386')
 		msi_arch='x86'
 		;;
-	('amd64'|'arm64')
+	'amd64' | 'arm64')
 		# Use the value of 'x64' for ARM64 installer, since wixl only considers
 		# this option when specifying component's Win64 attribute value, which
 		# is 'yes' by default for ARM64 architecture.
@@ -203,7 +185,7 @@ build_msi() {
 		# See https://wixtoolset.org/docs/v3/xsd/wix/component.
 		msi_arch='x64'
 		;;
-	(*)
+	*)
 		log "${msi_exe_arch} is not supported"
 
 		return 1
@@ -213,16 +195,12 @@ build_msi() {
 	# TODO(e.burkov):  Configure another variables here.
 	msi_version="${version#v}"
 
-	wixl\
-		--ext "ui"\
-		-a "$msi_arch"\
-		-D "BuildDir=${msi_dir}"\
-		-D "ProductVersion=${msi_version}"\
-		-o "$msi_out"\
-		./msi/product.wxs\
-		./msi/prerequisitesdlg.wxs\
-		./msi/ui.wxs\
-		;
+	wixl --ext "ui" \
+		-a "$msi_arch" \
+		-D "BuildDir=${msi_dir}" \
+		-D "ProductVersion=${msi_version}" \
+		-o "$msi_out" \
+		./msi/product.wxs ./msi/prerequisitesdlg.wxs ./msi/ui.wxs
 	msibuild "$msi_out" -a Binary.WixUI_Bmp_Dialog ./msi/bitmaps/dialogue.bmp
 	msibuild "$msi_out" -a Binary.WixUI_Bmp_Banner ./msi/bitmaps/banner.bmp
 
@@ -236,15 +214,14 @@ build_msi() {
 build() {
 	# Get the arguments.  Here and below, use the "build_" prefix for all
 	# variables local to function build.
-	build_dir="${dist}/${1}/AdGuardDNSClient"\
-		build_ar="$2"\
-		build_os="$3"\
-		build_arch="$4"\
+	build_dir="${dist}/${1}/AdGuardDNSClient" \
+		build_ar="$2" \
+		build_os="$3" \
+		build_arch="$4" \
 		;
 
 	# Use the ".exe" filename extension if we build a Windows release.
-	if [ "$build_os" = 'windows' ]
-	then
+	if [ "$build_os" = 'windows' ]; then
 		build_output="./${build_dir}/AdGuardDNSClient.exe"
 	else
 		build_output="./${build_dir}/AdGuardDNSClient"
@@ -253,14 +230,12 @@ build() {
 	mkdir -p "./${build_dir}"
 
 	# Build the binary.
-	env\
-		GOARCH="$build_arch"\
-		GOOS="$os"\
-		VERBOSE="$(( verbose - 1 ))"\
-		VERSION="$version"\
-		OUT="$build_output"\
-		sh ./scripts/make/go-build.sh\
-		;
+	env GOARCH="$build_arch" \
+		GOOS="$os" \
+		VERBOSE="$((verbose - 1))" \
+		VERSION="$version" \
+		OUT="$build_output" \
+		sh ./scripts/make/go-build.sh
 
 	log "$build_output"
 
@@ -269,12 +244,11 @@ build() {
 	# Prepare the build directory for archiving.
 	#
 	# TODO(e.burkov):  Add CHANGELOG.md and LICENSE.txt.
-	cp ./README.md        "$build_dir"
+	cp ./README.md "$build_dir"
 	cp ./config.dist.yaml "$build_dir"
 
 	# Use the ".txt" extension if we copy text file into Windows release.
-	if [ "$build_os" = 'windows' ]
-	then
+	if [ "$build_os" = 'windows' ]; then
 		cp ./LICENSE "${build_dir}/LICENSE.txt"
 	else
 		cp ./LICENSE "$build_dir"
@@ -282,12 +256,10 @@ build() {
 
 	# Make archives.  Windows and macOS prefer ZIP archives; the rest, gzipped
 	# tarballs.
-	case "$build_os"
-	in
-	('windows')
+	case "$build_os" in
+	'windows')
 		# TODO(e.burkov):  Consider building only MSI installers for Windows.
-		if [ "$msi" -eq 1 ]
-		then
+		if [ "$msi" -eq 1 ]; then
 			build_msi "$build_arch" "./${dist}/${build_ar}.msi" "$build_dir"
 		fi
 
@@ -295,17 +267,17 @@ build() {
 
 		# TODO(a.garipov): Find an option similar to the -C option of tar for
 		# zip.
-		( cd "${dist}/${1}" && zip -9 -q -r "../../${build_archive}" "./AdGuardDNSClient" )
+		(cd "${dist}/${1}" && zip -9 -q -r "../../${build_archive}" "./AdGuardDNSClient")
 		;;
-	('darwin')
+	'darwin')
 		build_archive="./${dist}/${build_ar}.zip"
 		# TODO(a.garipov): Find an option similar to the -C option of tar for
 		# zip.
-		( cd "${dist}/${1}" && zip -9 -q -r "../../${build_archive}" "./AdGuardDNSClient" )
+		(cd "${dist}/${1}" && zip -9 -q -r "../../${build_archive}" "./AdGuardDNSClient")
 		;;
-	(*)
+	*)
 		build_archive="./${dist}/${build_ar}.tar.gz"
-		tar -C "./${dist}/${1}" -c -f - "./AdGuardDNSClient" | gzip -9 - > "$build_archive"
+		tar -C "./${dist}/${1}" -c -f - "./AdGuardDNSClient" | gzip -9 - >"$build_archive"
 		;;
 	esac
 
@@ -316,8 +288,7 @@ log "starting builds"
 
 # Go over all platforms defined in the space-separated table above, tweak the
 # values where necessary, and feed to build.
-echo "$platforms" | while read -r os arch
-do
+echo "$platforms" | while read -r os arch; do
 	# See if the architecture or the OS is in the allowlist.  To do so, try
 	# removing everything that matches the pattern (well, a prefix, but that
 	# doesn't matter here) containing the arch or the OS.
@@ -332,13 +303,11 @@ do
 	# TODO(e.burkov):  Simplify, use some idiomatic approach.
 	#
 	# shellcheck disable=SC2295
-	if [ "${arches##* $arch *}" != '' ]
-	then
+	if [ "${arches##* $arch *}" != '' ]; then
 		log "$arch excluded, continuing"
 
 		continue
-	elif [ "${oses##* $os *}" != '' ]
-	then
+	elif [ "${oses##* $os *}" != '' ]; then
 		log "$os excluded, continuing"
 
 		continue
@@ -356,8 +325,7 @@ log "calculating checksums"
 # calculate_checksums uses the previously detected SHA-256 tool to calculate
 # checksums.  Do not use find with -exec, since shasum requires arguments.
 calculate_checksums() {
-	if [ "$use_shasum" -eq '0' ]
-	then
+	if [ "$use_shasum" -eq '0' ]; then
 		sha256sum "$@"
 	else
 		shasum -a 256 "$@"
@@ -374,23 +342,21 @@ calculate_checksums() {
 
 	cd "./${dist}"
 
-	: > ./checksums.txt
+	: >./checksums.txt
 
-	for archive in ./*.zip ./*.tar.gz ./*.msi
-	do
+	for archive in ./*.zip ./*.tar.gz ./*.msi; do
 		# Make sure that we don't try to calculate a checksum for a glob pattern
 		# that matched no files.
-		if [ ! -f "$archive" ]
-		then
+		if [ ! -f "$archive" ]; then
 			continue
 		fi
 
-		calculate_checksums "$archive" >> ./checksums.txt
+		calculate_checksums "$archive" >>./checksums.txt
 	done
 )
 
 log "writing versions"
 
-printf '%s\n' "$version" > "./${dist}/version.txt"
+printf '%s\n' "$version" >"./${dist}/version.txt"
 
 log "finished"

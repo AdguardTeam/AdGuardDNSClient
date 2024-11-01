@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"maps"
 	"net/netip"
 	"slices"
 	"strings"
@@ -9,7 +10,6 @@ import (
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/errors"
-	"github.com/AdguardTeam/golibs/mapsutil"
 	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/AdguardTeam/golibs/timeutil"
 )
@@ -95,7 +95,7 @@ func (s matchSet) addMatch(name agdc.UpstreamGroupName, m *upstreamMatchConfig) 
 	}
 
 	if another == name {
-		err = errMustBeUnique
+		err = errors.ErrDuplicated
 	} else {
 		err = fmt.Errorf("conflicts with group %q", another)
 	}
@@ -145,7 +145,9 @@ func (c upstreamGroupsConfig) validate() (err error) {
 // validateGroups returns the errors of validating groups within c.
 func (c upstreamGroupsConfig) validateGroups() (errs []error) {
 	ms := matchSet{}
-	mapsutil.SortedRange(c, func(name agdc.UpstreamGroupName, g *upstreamGroupConfig) (cont bool) {
+	for _, name := range slices.Sorted(maps.Keys(c)) {
+		g := c[name]
+
 		var err error
 		if slices.Contains(predefinedGroups, name) {
 			err = g.validateAsPredefined()
@@ -156,9 +158,7 @@ func (c upstreamGroupsConfig) validateGroups() (errs []error) {
 			err = fmt.Errorf("group %q: %w", name, err)
 			errs = append(errs, err)
 		}
-
-		return true
-	})
+	}
 
 	return errs
 }
@@ -187,7 +187,7 @@ func (c *upstreamGroupConfig) validateAsPredefined() (err error) {
 	}
 
 	if len(c.Match) > 0 {
-		err = errMustHaveNoMatch
+		err = fmt.Errorf("match: %w", errors.ErrNotEmpty)
 		errs = append(errs, err)
 	}
 

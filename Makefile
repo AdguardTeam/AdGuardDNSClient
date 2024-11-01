@@ -1,14 +1,14 @@
 # Keep the Makefile POSIX-compliant.  We currently allow hyphens in
 # target names, but that may change in the future.
 #
-# See https://pubs.opengroup.org/onlinepubs/9699919799/utilities/make.html.
+# See https://pubs.opengroup.org/onlinepubs/9799919799/utilities/make.html.
 .POSIX:
 
 # This comment is used to simplify checking local copies of the
 # Makefile.  Bump this number every time a significant change is made to
 # this Makefile.
 #
-# AdGuard-Project-Version: 6
+# AdGuard-Project-Version: 9
 
 # Don't name these macros "GO" etc., because GNU Make apparently makes
 # them exported environment variables with the literal value of
@@ -20,19 +20,19 @@
 GO.MACRO = $${GO:-go}
 VERBOSE.MACRO = $${VERBOSE:-0}
 
-BRANCH = $$( git rev-parse --abbrev-ref HEAD )
+BRANCH = $${BRANCH:-$$(git rev-parse --abbrev-ref HEAD)}
 CHANNEL = development
 DEPLOY_SCRIPT_PATH = not/a/real/path
 DIST_DIR = dist
 GOAMD64 = v1
 GOPROXY = https://proxy.golang.org|direct
-GOTOOLCHAIN = go1.22.6
 GOTELEMETRY = off
+GOTOOLCHAIN = go1.23.2
 GPG_KEY = devteam@adguard.com
 GPG_KEY_PASSPHRASE = not-a-real-password
 MSI = 1
 RACE = 0
-REVISION = $$( git rev-parse --short HEAD )
+REVISION = $${REVISION:-$$(git rev-parse --short HEAD)}
 SIGN = 1
 SIGNER_API_KEY = not-a-real-key
 VERSION = v0.0.0
@@ -61,6 +61,7 @@ ENV = env\
 # Keep the line above blank.
 
 ENV_MISC = env\
+	PATH="$${PWD}/bin:$$("$(GO.MACRO)" env GOPATH)/bin:$${PATH}"\
 	VERBOSE="$(VERBOSE.MACRO)"\
 
 # Keep the line above blank.
@@ -86,9 +87,9 @@ go-check: go-tools go-lint go-test
 # A quick check to make sure that all operating systems relevant to the
 # development of the project can be typechecked and built successfully.
 go-os-check:
-	env GOOS='darwin'  "$(GO.MACRO)" vet ./internal/...
-	env GOOS='linux'   "$(GO.MACRO)" vet ./internal/...
-	env GOOS='windows' "$(GO.MACRO)" vet ./internal/...
+	$(ENV) GOOS='darwin'  "$(GO.MACRO)" vet ./internal/...
+	$(ENV) GOOS='linux'   "$(GO.MACRO)" vet ./internal/...
+	$(ENV) GOOS='windows' "$(GO.MACRO)" vet ./internal/...
 
 txt-lint: ; $(ENV) "$(SHELL)" ./scripts/make/txt-lint.sh
 

@@ -75,9 +75,13 @@ func newEnvLogger(
 ) (l *slog.Logger, logFile *os.File, err error) {
 	output := cmp.Or(envs.output, outputSyslog)
 	format := cmp.Or(envs.format, slogutil.FormatDefault)
-	isVerbose := opts.verbose || (envs.verboseSet && envs.verbose)
 
-	return newLogger(output, format, envs.timestampSet && envs.timestamp, isVerbose)
+	level := slog.LevelInfo
+	if opts.verbose || (envs.verboseSet && envs.verbose) {
+		level = slog.LevelDebug
+	}
+
+	return newLogger(output, format, envs.timestampSet && envs.timestamp, level)
 }
 
 // newLogger creates a new logger based on the parameters.  l is never nil: if
@@ -86,11 +90,11 @@ func newLogger(
 	outputStr string,
 	f slogutil.Format,
 	addTimestamp bool,
-	isVerbose bool,
+	level slog.Level,
 ) (l *slog.Logger, logFile *os.File, err error) {
 	var output *os.File
 	if outputStr == outputSyslog {
-		l, err = newSystemLogger(isVerbose)
+		l, err = newSystemLogger(level)
 		if err == nil {
 			return l, nil, nil
 		}
@@ -111,7 +115,7 @@ func newLogger(
 		Output:       output,
 		Format:       f,
 		AddTimestamp: addTimestamp,
-		Verbose:      isVerbose,
+		Level:        level,
 	}), logFile, err
 }
 
@@ -141,19 +145,14 @@ func outputFromStr(s string) (output *os.File, needsClose bool, err error) {
 
 // newSystemLogger returns a new logger that writes to system log with the
 // given verbosity.
-func newSystemLogger(isVerbose bool) (l *slog.Logger, err error) {
+func newSystemLogger(level slog.Level) (l *slog.Logger, err error) {
 	sl, err := agdcslog.NewSystemLogger(serviceName)
 	if err != nil {
 		return nil, err
 	}
 
-	lvl := slog.LevelInfo
-	if isVerbose {
-		lvl = slog.LevelDebug
-	}
-
 	h := agdcslog.NewSyslogHandler(sl, &slog.HandlerOptions{
-		Level: lvl,
+		Level: level,
 	})
 
 	return slog.New(h), nil
@@ -176,7 +175,7 @@ func newConfigLogger(
 
 	c := conf.Log
 
-	outputStr, format, addTimestamp, isVerbose := overridenLogConf(opts, envs, c)
+	outputStr, format, addTimestamp, level := overridenLogConf(opts, envs, c)
 
 	// Select an action based on the previous output.
 	var err error
@@ -198,11 +197,11 @@ func newConfigLogger(
 			Output:       envLogFile,
 			Format:       format,
 			AddTimestamp: addTimestamp,
-			Verbose:      isVerbose,
+			Level:        level,
 		}), envLogFile, nil
 	}
 
-	l, logFile, err = newLogger(outputStr, format, addTimestamp, isVerbose)
+	l, logFile, err = newLogger(outputStr, format, addTimestamp, level)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("creating conf log: %w", err))
 	}
@@ -216,7 +215,7 @@ func overridenLogConf(
 	opts *options,
 	envs *logEnvs,
 	c *logConfig,
-) (outputStr string, format slogutil.Format, addTimestamp, isVerbose bool) {
+) (outputStr string, format slogutil.Format, addTimestamp bool, level slog.Level) {
 	outputStr = cmp.Or(envs.output, c.Output)
 	format = cmp.Or(envs.format, c.Format)
 
@@ -225,14 +224,17 @@ func overridenLogConf(
 		addTimestamp = envs.timestamp
 	}
 
-	isVerbose = c.Verbose
-	if envs.verboseSet {
-		isVerbose = envs.verboseSet && envs.verbose
+	switch {
+	case
+		opts.verbose,
+		envs.verboseSet && envs.verbose,
+		c.Verbose:
+		level = slog.LevelDebug
+	default:
+		level = slog.LevelInfo
 	}
 
-	isVerbose = isVerbose || opts.verbose
-
-	return outputStr, format, addTimestamp, isVerbose
+	return outputStr, format, addTimestamp, level
 }
 
 // closeEnv closes the previous logger, if necessary.  If usePrev is true, the

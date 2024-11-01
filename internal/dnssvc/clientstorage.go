@@ -17,7 +17,7 @@ func (confs upstreamConfigs) clients(cacheConf *CacheConfig) (clients []*client)
 			conf: proxy.NewCustomUpstreamConfig(
 				conf,
 				cacheConf.Enabled,
-				int(cacheConf.ClientSize),
+				cacheConf.ClientSize,
 				false,
 			),
 			prefix: cli,

@@ -25,9 +25,11 @@ type cacheConfig struct {
 // c must be valid.
 func (c *cacheConfig) toInternal() (conf *dnssvc.CacheConfig) {
 	return &dnssvc.CacheConfig{
-		Enabled:    c.Enabled,
-		Size:       c.Size,
-		ClientSize: c.ClientSize,
+		Enabled: c.Enabled,
+		// #nosec G115 -- The value is validated to not exceed [math.MaxInt].
+		Size: int(c.Size),
+		// #nosec G115 -- The value is validated to not exceed [math.MaxInt].
+		ClientSize: int(c.ClientSize),
 	}
 }
 
@@ -48,19 +50,23 @@ func (c *cacheConfig) validate() (err error) {
 	// TODO(e.burkov):  Remove [math.MaxInt] constraint when [datasize.ByteSize]
 	// is supported by proxy.
 
-	if c.Size == 0 {
-		err = fmt.Errorf("got size %s: %w", c.Size, errors.ErrNotPositive)
-		errs = append(errs, err)
-	} else if c.Size > math.MaxInt {
-		err = fmt.Errorf("got size %s: must be less or equal to %d", c.Size, math.MaxInt)
+	if c.Size == 0 || c.Size > math.MaxInt {
+		err = fmt.Errorf(
+			"size: %w: must be positive and less than %d; got %d",
+			errors.ErrOutOfRange,
+			math.MaxInt,
+			c.Size,
+		)
 		errs = append(errs, err)
 	}
 
-	if c.ClientSize == 0 {
-		err = fmt.Errorf("got client_size %s: %w", c.ClientSize, errors.ErrNotPositive)
-		errs = append(errs, err)
-	} else if c.ClientSize > math.MaxInt {
-		err = fmt.Errorf("got size %s: must be less or equal to %d", c.ClientSize, math.MaxInt)
+	if c.Size == 0 || c.Size > math.MaxInt {
+		err = fmt.Errorf(
+			"client_size: %w: must be positive and less than %d; got %d",
+			errors.ErrOutOfRange,
+			math.MaxInt,
+			c.Size,
+		)
 		errs = append(errs, err)
 	}
 

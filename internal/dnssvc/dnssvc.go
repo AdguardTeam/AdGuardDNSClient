@@ -117,7 +117,7 @@ func newProxyConfig(
 		UsePrivateRDNS:            private != nil,
 		Fallbacks:                 falls,
 		TrustedProxies:            trusted,
-		CacheSizeBytes:            int(conf.Cache.Size),
+		CacheSizeBytes:            conf.Cache.Size,
 		CacheEnabled:              conf.Cache.Enabled,
 	}, ups.clients(conf.Cache), nil
 }

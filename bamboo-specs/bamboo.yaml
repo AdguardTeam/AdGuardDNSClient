@@ -9,44 +9,38 @@
     'key': 'DNSCLIENT'
     'name': 'AdGuardDNSClient'
 'variables':
-    'dockerGo': 'adguard/go-builder:1.22.6--1'
-    'dockerMisc': 'adguard/go-misc-tools:1.0'
-    'maintainer': 'Adguard DNS Team'
+    'dockerGo': 'adguard/go-builder:1.23.2--1'
+    'maintainer': 'Adguard Go Team'
     'name': 'AdGuardDNSClient'
     'channel': 'development'
 
 'stages':
--
-    'Go Lint':
+  - 'Go Lint':
         'manual': false
         'final': false
         'jobs':
-        - 'Go Lint'
--
-    'Misc Lint':
+          - 'Go Lint'
+  - 'Misc Lint':
         'manual': false
         'final': false
         'jobs':
-        - 'Misc Lint'
--
-    'Test':
+          - 'Misc Lint'
+  - 'Test':
         'manual': false
         'final': false
         'jobs':
-        - 'Test'
--
-    'Artifact':
+          - 'Test'
+  - 'Artifact':
         'manual': false
         'final': false
         'jobs':
-        - 'ArtifactQA'
-        - 'Artifact'
--
-    'Publish':
+          - 'ArtifactQA'
+          - 'Artifact'
+  - 'Publish':
         'manual': false
         'final': false
         'jobs':
-        - 'Publish'
+          - 'Publish'
 
 'Go Lint':
     'docker':
@@ -58,14 +52,12 @@
     'requirements':
     - 'adg-docker': 'true'
     'tasks':
-    -
-        'checkout':
+      - 'checkout':
             'force-clean-build': true
-    -
-        'script':
+      - 'script':
             'interpreter': 'SHELL'
             'scripts':
-            - |-
+            - |
               #!/bin/sh
 
               set -e -f -u -x
@@ -74,7 +66,7 @@
 
 'Misc Lint':
     'docker':
-        'image': '${bamboo.dockerMisc}'
+        'image': '${bamboo.dockerGo}'
     'key': 'MISCLINT'
     'other':
         'clean-working-dir': true
@@ -87,9 +79,17 @@
             'interpreter': 'SHELL'
             'scripts':
               - |
+                #!/bin/sh
+
                 set -e -f -u -x
 
-                make VERBOSE=1 md-lint sh-lint
+                make \
+                    VERBOSE=1 \
+                    go-tools \
+                    md-lint \
+                    sh-lint \
+                    txt-lint \
+                    ;
 
 'Test':
     'docker':
@@ -101,14 +101,12 @@
     'requirements':
     - 'adg-docker': 'true'
     'tasks':
-    -
-        'checkout':
+      - 'checkout':
             'force-clean-build': true
-    -
-        'script':
+      - 'script':
             'interpreter': 'SHELL'
             'scripts':
-            - |-
+            - |
               #!/bin/sh
 
               set -e -f -u -x
@@ -117,68 +115,55 @@
 
 'Artifact':
     'artifacts':
-    -
-        'name': 'AdGuardDNSClient_darwin_amd64'
+      - 'name': 'AdGuardDNSClient_darwin_amd64'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_amd64.zip'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_darwin_arm64'
+      - 'name': 'AdGuardDNSClient_darwin_arm64'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_arm64.zip'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_linux_386'
+      - 'name': 'AdGuardDNSClient_linux_386'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_386.tar.gz'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_linux_amd64'
+      - 'name': 'AdGuardDNSClient_linux_amd64'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_linux_arm64'
+      - 'name': 'AdGuardDNSClient_linux_arm64'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_arm64.tar.gz'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_386'
+      - 'name': 'AdGuardDNSClient_windows_386'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_386.zip'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_386_msi'
+      - 'name': 'AdGuardDNSClient_windows_386_msi'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_386.msi'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_amd64'
+      - 'name': 'AdGuardDNSClient_windows_amd64'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.zip'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_amd64_msi'
+      - 'name': 'AdGuardDNSClient_windows_amd64_msi'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.msi'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_arm64'
+      - 'name': 'AdGuardDNSClient_windows_arm64'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_arm64.zip'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_arm64_msi'
+      - 'name': 'AdGuardDNSClient_windows_arm64_msi'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_arm64.msi'
         'shared': true
         'required': true
-    -
-        'name': 'Checksums'
+      - 'name': 'Checksums'
         'pattern': '${bamboo.name}/dist/checksums.txt'
         'shared': true
         'required': true
-    -
-        'name': 'Version'
+      - 'name': 'Version'
         'pattern': '${bamboo.name}/dist/version.txt'
         'shared': true
         'required': true
@@ -191,23 +176,20 @@
     'other':
          'clean-working-dir': true
     'requirements':
-    - 'adg-docker': 'true'
+      - 'adg-docker': 'true'
     'tasks':
-    -
-        'checkout':
+      - 'checkout':
             'repository': 'bamboo-deploy-publisher'
             # The paths are always relative to the working directory.
             'path': 'bamboo-deploy-publisher'
             'force-clean-build': true
-    -
-        'checkout':
+      - 'checkout':
             'path': '${bamboo.name}'
             'force-clean-build': true
-    -
-        'script':
+      - 'script':
             'interpreter': 'SHELL'
             'scripts':
-            - |-
+            - |
               #!/bin/sh
 
               set -e -f -u -x
@@ -234,33 +216,27 @@
 
 'ArtifactQA':
     'artifacts':
-    -
-        'name': 'AdGuardDNSClient_darwin_amd64'
+      - 'name': 'AdGuardDNSClient_darwin_amd64'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_darwin_amd64.zip'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_linux_amd64'
+      - 'name': 'AdGuardDNSClient_linux_amd64'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_linux_amd64.tar.gz'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_386_msi'
+      - 'name': 'AdGuardDNSClient_windows_386_msi'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_386.msi'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_amd64_msi'
+      - 'name': 'AdGuardDNSClient_windows_amd64_msi'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_amd64.msi'
         'shared': true
         'required': true
-    -
-        'name': 'AdGuardDNSClient_windows_arm64_msi'
+      - 'name': 'AdGuardDNSClient_windows_arm64_msi'
         'pattern': '${bamboo.name}/dist/AdGuardDNSClient_windows_arm64.msi'
         'shared': true
         'required': true
-    -
-        'name': 'Checksums'
+      - 'name': 'Checksums'
         'pattern': '${bamboo.name}/dist/checksums.txt'
         'shared': true
         'required': true
@@ -275,21 +251,18 @@
     'requirements':
     - 'adg-docker': 'true'
     'tasks':
-    -
-        'checkout':
+      - 'checkout':
             'repository': 'bamboo-deploy-publisher'
             # The paths are always relative to the working directory.
             'path': 'bamboo-deploy-publisher'
             'force-clean-build': true
-    -
-        'checkout':
+      - 'checkout':
             'path': '${bamboo.name}'
             'force-clean-build': true
-    -
-        'script':
+      - 'script':
             'interpreter': 'SHELL'
             'scripts':
-            - |-
+            - |
               #!/bin/sh
 
               set -e -f -u -x
@@ -383,14 +356,12 @@
     'link-to-jira': true
 
 'branch-overrides':
--
-    # rc-vX.Y.Z branches are the release candidate branches. They are created
-    # from the release branch and are used to build the release candidate
-    # images.  The "candidate" pseudo-channel is used to generate version.
-    '^rc-v[0-9]+\.[0-9]+\.[0-9]+':
+# rc-vX.Y.Z branches are the release candidate branches. They are created from
+# the release branch and are used to build the release candidate images.  The
+# "candidate" pseudo-channel is used to generate version.
+  - '^rc-v[0-9]+\.[0-9]+\.[0-9]+':
         'variables':
-            'dockerGo': 'adguard/go-builder:1.22.6-1'
-            'dockerMisc': 'adguard/go-misc-tools:1.0'
+            'dockerGo': 'adguard/go-builder:1.23.2-1'
             'channel': 'candidate'
         'stages':
         - 'Go Lint':
@@ -413,17 +384,15 @@
             'final': false
             'jobs':
             - 'ArtifactQA'
--
-    # release-vX.Y.Z branches are the branches from which the actual final
-    # release is built.
-    '^release-v[0-9]+\.[0-9]+\.[0-9]+':
+# release-vX.Y.Z branches are the branches from which the actual final release
+# is built.
+  - '^release-v[0-9]+\.[0-9]+\.[0-9]+':
         # Build final releases on release branches manually.
         'triggers': []
         # Set the default release channel on the final branch to release, as
         # these are the ones that actually get released.
         'variables':
-            'dockerGo': 'adguard/go-builder:1.22.6--1'
-            'dockerMisc': 'adguard/go-misc-tools:1.0'
+            'dockerGo': 'adguard/go-builder:1.23.2--1'
             'channel': 'release'
         'stages':
         - 'Go Lint':
@@ -451,9 +420,8 @@
             'final': false
             'jobs':
             - 'Publish'
--
-    # All the other branches, including master.
-    '^.*':
+# All the other branches, including master.
+  - '^.*':
         'stages':
         - 'Go Lint':
             'manual': false
@@ -478,12 +446,10 @@
         # Don't publish artifacts for other branches.
 
 'notifications':
--
-    'events':
-    - 'plan-status-changed'
+  - 'events':
+      - 'plan-status-changed'
     'recipients':
-    -
-        'webhook':
+      - 'webhook':
             'name': 'Build webhook'
             'url': 'http://prod.jirahub.service.eu.consul/v1/webhook/bamboo?channel=adguard-qa-dns-builds'
 
