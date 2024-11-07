@@ -3,7 +3,7 @@ module github.com/AdguardTeam/AdGuardDNSClient
 go 1.23.3
 
 require (
-	github.com/AdguardTeam/dnsproxy v0.73.3-0.20241004151328-c7c7b977a2a3
+	github.com/AdguardTeam/dnsproxy v0.73.3
 	github.com/AdguardTeam/golibs v0.30.2
 	github.com/c2h5oh/datasize v0.0.0-20231215233829-aa82cc1e6500
 	github.com/miekg/dns v1.1.62

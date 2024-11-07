@@ -1,5 +1,5 @@
-github.com/AdguardTeam/dnsproxy v0.73.3-0.20241004151328-c7c7b977a2a3 h1:IGXwBjdKDzUm007QzZyxSllMnkbdXe7K79x7JWcBW/E=
-github.com/AdguardTeam/dnsproxy v0.73.3-0.20241004151328-c7c7b977a2a3/go.mod h1:356iHROxo+SOdBVifp1MXEh6qHyydtzGCcsQMfx+ZVs=
+github.com/AdguardTeam/dnsproxy v0.73.3 h1:aacr6Wu0ed94DDD+gSB6EwF8nvyq0+DAc7oFOgtgUpA=
+github.com/AdguardTeam/dnsproxy v0.73.3/go.mod h1:18ssqhDgOCiVIwYmmVuXVM05wSwrzkO2yjKhVRWJX/g=
 github.com/AdguardTeam/golibs v0.30.2 h1:urU/NAyIvQOeArBqDmKCDpaRkfTCJ26uSiSuDMKQfuY=
 github.com/AdguardTeam/golibs v0.30.2/go.mod h1:FkwcNQEJoGsgDGXcalrVa/4gWbE68KsmE2guXWtBQUE=
 github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da h1:KjTM2ks9d14ZYCvmHS9iAKVt9AyzRSqNU1qabPih5BY=
