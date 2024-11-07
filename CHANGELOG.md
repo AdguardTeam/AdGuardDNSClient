@@ -16,6 +16,16 @@ See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
 NOTE: Add new changes BELOW THIS COMMENT.
 -->
 
+<!--
+NOTE: Add new changes ABOVE THIS COMMENT.
+-->
+
+## [v0.0.2] - 2024-11-08
+
+See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
+
+[ms-v0.0.2]: https://github.com/AdguardTeam/AdGuardDNSClient/milestone/1?closed=1
+
 ### Security
 
 - Go version has been updated to prevent the possibility of exploiting the Go vulnerabilities fixed in [Go 1.23.3][go-1.23.3].
@@ -42,10 +52,6 @@ NOTE: Add new changes BELOW THIS COMMENT.
 [go-1.23.3]: https://groups.google.com/g/golang-announce/c/X5KodEJYuqI
 [go-59229]:  https://github.com/golang/go/issues/59229
 
-<!--
-NOTE: Add new changes ABOVE THIS COMMENT.
--->
-
 ## [v0.0.1] - 2024-06-17
 
 ### Added
@@ -53,9 +59,10 @@ NOTE: Add new changes ABOVE THIS COMMENT.
 - Everything!
 
 <!--
-[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.2...HEAD
-[v0.0.2]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.1...v0.0.2
+[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.3...HEAD
+[v0.0.2]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.2...v0.0.3
 -->
 
-[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.1...HEAD
+[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.2...HEAD
+[v0.0.2]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.1...v0.0.2
 [v0.0.1]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.0...v0.0.1
