@@ -270,9 +270,6 @@
               # Follow the working repository path.
               cd "${bamboo.name}"
 
-              # Explicitly checkout the revision that we need.
-              git checkout "${bamboo.repository.revision.number}"
-
               # TODO(e.burkov):  Consider using more POSIX-compliant printf.
               echo "${bamboo.gpgSecretKeyPart1}${bamboo.gpgSecretKeyPart2}"\
                   | awk '{ gsub(/\\n/, "\n"); print; }'\
