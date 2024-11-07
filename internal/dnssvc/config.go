@@ -7,9 +7,13 @@ import (
 	"github.com/AdguardTeam/golibs/netutil"
 )
 
-// Config is the configuration for [DNSService].  All fields must not be empty.
+// Config is the configuration for [DNSService].
 type Config struct {
-	// Logger is used as the base logger for the DNS service.
+	// BaseLogger used as the base logger for the DNS subservices.  It must not
+	// be nil.
+	BaseLogger *slog.Logger
+
+	// Logger is the logger for the DNS service.  It must not be nil.
 	Logger *slog.Logger
 
 	// PrivateSubnets is the set of IP networks considered private.  The PTR
@@ -18,22 +22,24 @@ type Config struct {
 	// of the networks.
 	PrivateSubnets netutil.SubnetSet
 
-	// Cache is the configuration for the DNS results cache.
+	// Cache is the configuration for the DNS results cache.  It must not be
+	// nil.
 	Cache *CacheConfig
 
-	// Bootstrap describes bootstrapping DNS servers.
+	// Bootstrap describes bootstrapping DNS servers.  It must not be nil.
 	Bootstrap *BootstrapConfig
 
-	// Upstreams describes DNS upstream servers.
+	// Upstreams describes DNS upstream servers.  It must not be nil.
 	Upstreams *UpstreamConfig
 
-	// Fallbacks describes DNS fallback upstream servers.
+	// Fallbacks describes DNS fallback upstream servers.  It must not be nil.
 	Fallbacks *FallbackConfig
 
-	// ClientGetter is the function to get the client for a request.
+	// ClientGetter is the function to get the client for a request.  It must
+	// not be nil.
 	ClientGetter ClientGetter
 
 	// ListenAddrs is the list of served addresses.  It must contain at least
-	// one entry.
+	// one entry.  It must not be empty and must contain only valid addresses.
 	ListenAddrs []netip.AddrPort
 }

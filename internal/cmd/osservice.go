@@ -55,6 +55,7 @@ func (a *serviceAction) Set(value string) (err error) {
 
 		return nil
 	default:
+		// Don't wrap the error, since it's wrapped by package [flag].
 		return errors.ErrBadEnumValue
 	}
 }
@@ -66,10 +67,7 @@ func (a serviceAction) String() (s string) { return string(a) }
 // from [service.Control], but reports better errors and prints them to stderr.
 //
 // TODO(e.burkov):  Get output from this in MSI installer and show it.
-func control(
-	svc osservice.Service,
-	action serviceAction,
-) (exitCode osutil.ExitCode) {
+func control(svc osservice.Service, action serviceAction) (exitCode osutil.ExitCode) {
 	var err error
 	switch action {
 	case serviceActionInstall:
@@ -85,7 +83,7 @@ func control(
 	case serviceActionUninstall:
 		err = svc.Uninstall()
 	default:
-		panic(fmt.Errorf("action %q: %w", action, errors.ErrBadEnumValue))
+		panic(fmt.Errorf("action: %w: %q", errors.ErrBadEnumValue, action))
 	}
 
 	if err != nil {

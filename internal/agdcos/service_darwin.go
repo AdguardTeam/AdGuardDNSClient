@@ -12,7 +12,7 @@ import (
 
 // errBadExecPath is returned when the executable is installed into an invalid
 // location.
-const errBadExecPath errors.Error = "bad executable path for service"
+const errBadExecPath errors.Error = "bad executable path for system service"
 
 // validateExecPath returns an error if execPath is not a valid executable's
 // location, i.e. is not within the /Applications directory.

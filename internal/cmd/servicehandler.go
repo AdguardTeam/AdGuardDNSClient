@@ -30,7 +30,7 @@ func newServiceHandler(done <-chan struct{}, timeout time.Duration) (h *serviceH
 	}
 }
 
-// add adds a services to the signal handler.
+// add adds a services to h.
 //
 // It must not be called concurrently with [serviceHandler.handle].
 func (h *serviceHandler) add(svcs ...service.Interface) {
@@ -41,7 +41,7 @@ func (h *serviceHandler) add(svcs ...service.Interface) {
 // down all services.  ctx is used for logging and serves as the base for the
 // shutdown timeout.
 //
-// handle must not be called concurrently with [serviceHandler.add].
+// It must not be called concurrently with [serviceHandler.add].
 func (h *serviceHandler) handle(ctx context.Context, l *slog.Logger, errCh chan<- error) {
 	defer slogutil.RecoverAndLog(ctx, l)
 

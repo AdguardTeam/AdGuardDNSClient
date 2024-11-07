@@ -68,7 +68,7 @@ func (cs *clientStorage) find(addr netip.Addr) (c *client) {
 // close closes the storage and the upstream configurations of all its clients.
 // It returns a slice of errors that occurred during the closing.  It must not
 // be used concurrently with any existing client, i.e. any DNS processing must
-// be stopped beforeward.
+// be stopped before the call.
 func (cs *clientStorage) close() (errs []error) {
 	for _, c := range cs.clients {
 		err := c.conf.Close()

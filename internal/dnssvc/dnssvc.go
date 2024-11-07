@@ -55,7 +55,7 @@ func New(conf *Config) (svc *DNSService, err error) {
 	}
 
 	svc = &DNSService{
-		logger:       conf.Logger.With(slogutil.KeyPrefix, "dnssvc"),
+		logger:       conf.Logger,
 		clientGetter: conf.ClientGetter,
 		clients:      newClientStorage(clients),
 	}
@@ -107,7 +107,7 @@ func newProxyConfig(
 	}
 
 	return &proxy.Config{
-		Logger:                    conf.Logger.With(slogutil.KeyPrefix, "dnsproxy"),
+		Logger:                    conf.BaseLogger.With(slogutil.KeyPrefix, "dnsproxy"),
 		UpstreamMode:              proxy.UpstreamModeLoadBalance,
 		UDPListenAddr:             udp,
 		TCPListenAddr:             tcp,

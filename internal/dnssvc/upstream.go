@@ -17,10 +17,12 @@ import (
 //
 // TODO(e.burkov):  Put the required groups into separate fields.
 type UpstreamConfig struct {
-	// Groups is the list of groups.
+	// Groups is the list of groups.  It should contain at least a
+	// [agdc.UpstreamGroupNameDefault] group.
 	Groups []*UpstreamGroupConfig
 
-	// Timeout is the timeout for DNS requests.
+	// Timeout is the timeout for DNS requests.  Zero value disables the
+	// timeout.
 	Timeout time.Duration
 }
 
@@ -95,7 +97,7 @@ type UpstreamGroupConfig struct {
 	// Name is the name of the group.
 	Name agdc.UpstreamGroupName
 
-	// Address is the address of the server.
+	// Address is the address of the server.  It should not be empty.
 	Address string
 
 	// Match is the list of match criteria.
@@ -103,7 +105,7 @@ type UpstreamGroupConfig struct {
 }
 
 // MatchCriteria is the criteria for matching the upstream group to handle DNS
-// requests.
+// requests.  The zero value is not valid.
 type MatchCriteria struct {
 	// Client is the prefix to match the client address.
 	Client netip.Prefix

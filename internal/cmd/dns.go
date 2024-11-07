@@ -8,6 +8,7 @@ import (
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/container"
 	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/netutil"
 )
 
@@ -71,7 +72,8 @@ func (c *dnsConfig) validate() (err error) {
 // must be valid.
 func (c *dnsConfig) toInternal(logger *slog.Logger) (conf *dnssvc.Config) {
 	return &dnssvc.Config{
-		Logger: logger,
+		BaseLogger: logger,
+		Logger:     logger.With(slogutil.KeyPrefix, "dnssvc"),
 		// TODO(e.burkov):  Consider making configurable.
 		PrivateSubnets: netutil.SubnetSetFunc(netutil.IsLocallyServed),
 		Cache:          c.Cache.toInternal(),

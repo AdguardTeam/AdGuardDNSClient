@@ -137,13 +137,14 @@ func (c upstreamGroupsConfig) validate() (err error) {
 		}
 	}
 
-	errs = append(errs, c.validateGroups()...)
+	errs = c.validateGroups(errs)
 
 	return errors.Join(errs...)
 }
 
-// validateGroups returns the errors of validating groups within c.
-func (c upstreamGroupsConfig) validateGroups() (errs []error) {
+// validateGroups appends the errors of validating groups within c to errs and
+// returns the result.
+func (c upstreamGroupsConfig) validateGroups(errs []error) (res []error) {
 	ms := matchSet{}
 	for _, name := range slices.Sorted(maps.Keys(c)) {
 		g := c[name]

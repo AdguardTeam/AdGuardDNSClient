@@ -181,6 +181,7 @@ func TestDNSService(t *testing.T) {
 	// Create and start the service.
 
 	svc, err := dnssvc.New(&dnssvc.Config{
+		BaseLogger:     slogutil.NewDiscardLogger(),
 		Logger:         slogutil.NewDiscardLogger(),
 		PrivateSubnets: privateNets,
 		Bootstrap:      &dnssvc.BootstrapConfig{},

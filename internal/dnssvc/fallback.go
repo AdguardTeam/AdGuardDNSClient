@@ -13,7 +13,8 @@ type FallbackConfig struct {
 	// Addresses is the list of servers.
 	Addresses []string
 
-	// Timeout is the timeout for DNS requests.
+	// Timeout is the timeout for DNS requests.  Zero value disables the
+	// timeout.
 	Timeout time.Duration
 }
 

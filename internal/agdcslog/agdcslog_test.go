@@ -3,6 +3,7 @@ package agdcslog_test
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
@@ -14,8 +15,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockLogger is a mock implementation of [agdcslog.SystemLogger] interface for tests.
-type mockLogger struct {
+// testLogger is a mock implementation of [agdcslog.SystemLogger] interface for
+// tests.
+//
+// TODO(e.burkov):  Move into a separate package with testing utilities.
+type testLogger struct {
 	onDebug   func(msg string) (err error)
 	onInfo    func(msg string) (err error)
 	onWarning func(msg string) (err error)
@@ -23,50 +27,52 @@ type mockLogger struct {
 	onClose   func() (err error)
 }
 
-// NewMockLogger returns a new mock logger with placeholder methods.
-func NewMockLogger() (l *mockLogger) {
-	const errMsg = "not implemented"
-
-	notImplemented := func(_ string) (_ error) {
-		panic(errMsg)
-	}
-
-	return &mockLogger{
-		onInfo:    notImplemented,
-		onWarning: notImplemented,
-		onError:   notImplemented,
-		onDebug:   notImplemented,
+// newTestLogger returns a new mock logger with all its methods set to panic.
+func newTestLogger() (l *testLogger) {
+	return &testLogger{
+		onInfo: func(msg string) (_ error) {
+			panic(fmt.Errorf("unexpected call to Info(%q)", msg))
+		},
+		onWarning: func(msg string) (_ error) {
+			panic(fmt.Errorf("unexpected call to Warning(%q)", msg))
+		},
+		onError: func(msg string) (_ error) {
+			panic(fmt.Errorf("unexpected call to Error(%q)", msg))
+		},
+		onDebug: func(msg string) (_ error) {
+			panic(fmt.Errorf("unexpected call to Debug(%q)", msg))
+		},
 		onClose: func() (_ error) {
-			panic(errMsg)
+			panic(fmt.Errorf("unexpected call to Close"))
 		},
 	}
 }
 
 // type check
-var _ agdcslog.SystemLogger = (*mockLogger)(nil)
+var _ agdcslog.SystemLogger = (*testLogger)(nil)
 
-// Debug implements [agdcslog.SystemLogger] interface for *mockLogger.
-func (l *mockLogger) Debug(msg string) (err error) {
+// Debug implements [agdcslog.SystemLogger] interface for *testLogger.
+func (l *testLogger) Debug(msg string) (err error) {
 	return l.onDebug(msg)
 }
 
-// Info implements [agdcslog.SystemLogger] interface for *mockLogger.
-func (l *mockLogger) Info(msg string) (err error) {
+// Info implements [agdcslog.SystemLogger] interface for *testLogger.
+func (l *testLogger) Info(msg string) (err error) {
 	return l.onInfo(msg)
 }
 
-// Warning implements [agdcslog.SystemLogger] interface for *mockLogger.
-func (l *mockLogger) Warning(msg string) (err error) {
+// Warning implements [agdcslog.SystemLogger] interface for *testLogger.
+func (l *testLogger) Warning(msg string) (err error) {
 	return l.onWarning(msg)
 }
 
-// Error implements [agdcslog.SystemLogger] interface for *mockLogger.
-func (l *mockLogger) Error(msg string) (err error) {
+// Error implements [agdcslog.SystemLogger] interface for *testLogger.
+func (l *testLogger) Error(msg string) (err error) {
 	return l.onError(msg)
 }
 
-// Close implements [agdcslog.SystemLogger] interface for *mockLogger.
-func (l *mockLogger) Close() (err error) {
+// Close implements [agdcslog.SystemLogger] interface for *testLogger.
+func (l *testLogger) Close() (err error) {
 	return l.onClose()
 }
 
@@ -85,7 +91,7 @@ func TestSyslogHandler_Handle(t *testing.T) {
 		return nil
 	}
 
-	l := NewMockLogger()
+	l := newTestLogger()
 	l.onInfo = outputWrite
 	l.onWarning = outputWrite
 	l.onError = outputWrite
@@ -159,7 +165,7 @@ func TestSyslogHandler_Handle_race(t *testing.T) {
 		output = &bytes.Buffer{}
 	)
 
-	l := NewMockLogger()
+	l := newTestLogger()
 	l.onInfo = func(msg string) (err error) {
 		mu.Lock()
 		defer mu.Unlock()
@@ -204,7 +210,7 @@ func TestSyslogHandler_Handle_race(t *testing.T) {
 var errSink error
 
 func BenchmarkSyslogHandler_Handle(b *testing.B) {
-	l := NewMockLogger()
+	l := newTestLogger()
 	l.onInfo = func(_ string) (_ error) { return nil }
 
 	h := agdcslog.NewSyslogHandler(l, &slog.HandlerOptions{

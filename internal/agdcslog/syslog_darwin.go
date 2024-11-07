@@ -115,6 +115,8 @@ func (l *systemLogger) Error(msg string) (err error) {
 
 // Close implements the [SystemLogger] interface for *systemLogger.
 func (l *systemLogger) Close() (err error) {
+	defer func() { err = errors.Annotate(err, "closing logger processes: %w") }()
+
 	var errs []error
 	procs := []*process{
 		l.debug,
@@ -135,12 +137,7 @@ func (l *systemLogger) Close() (err error) {
 		}
 	}
 
-	err = errors.Join(errs...)
-	if err != nil {
-		return fmt.Errorf("closing logger processes: %w", err)
-	}
-
-	return nil
+	return errors.Join(errs...)
 }
 
 // process is an instance of the logger process with a particular severity.

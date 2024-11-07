@@ -25,9 +25,9 @@ type logConfig struct {
 	// Output specifies output for logs.  Value must be empty, an absolute path
 	// to a file, or one of the special values:
 	//
-	//	- [outputSyslog]
-	//	- [outputStdout]
-	//	- [outputStderr]
+	//  - [outputSyslog]
+	//  - [outputStdout]
+	//  - [outputStderr]
 	Output string `yaml:"output"`
 
 	// Format specifies format for logs.  Value must be empty or a valid
