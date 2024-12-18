@@ -1,4 +1,4 @@
-// Package version contains AdGuardDNSClient version information.
+// Package version contains the project version information.
 package version
 
 // Versions
@@ -18,7 +18,7 @@ func Branch() (b string) {
 	return branch
 }
 
-// CommitTime returns the compiled-in value of the build time as a string.
+// CommitTime returns the compiled-in value of the commit time as a string.
 func CommitTime() (t string) {
 	return committime
 }

@@ -67,7 +67,9 @@ func (prog *program) Start(_ osservice.Service) (err error) {
 	svcHdlr.add(dnsSvc)
 	l.DebugContext(ctx, "dns service started")
 
-	go svcHdlr.handle(ctx, prog.logger.With(slogutil.KeyPrefix, "service_handler"), prog.errCh)
+	svcHdlrLog := prog.logger.With(slogutil.KeyPrefix, "service_handler")
+
+	go svcHdlr.handle(ctx, svcHdlrLog, prog.errCh)
 
 	return nil
 }
@@ -80,7 +82,7 @@ func (prog *program) Stop(_ osservice.Service) (err error) {
 }
 
 // closeLogs closes the log files and syslog handler, if there are any.
-func (prog *program) closeLogs() {
+func (prog *program) closeLogs(ctx context.Context) {
 	// At this point, just use stderr with defaults.
 	l := slogutil.New(&slogutil.Config{
 		Output: os.Stderr,
@@ -89,7 +91,8 @@ func (prog *program) closeLogs() {
 	if prog.logFile != nil {
 		err := prog.logFile.Close()
 		if err != nil {
-			l.Error("stopping: closing log file", slogutil.KeyError, err)
+			err = fmt.Errorf("closing log file: %w", err)
+			l.ErrorContext(ctx, "stopping", slogutil.KeyError, err)
 		}
 	}
 
@@ -97,7 +100,8 @@ func (prog *program) closeLogs() {
 	if c, ok := h.(io.Closer); ok {
 		err := c.Close()
 		if err != nil {
-			l.Error("stopping: closing syslog", slogutil.KeyError, err)
+			err = fmt.Errorf("closing system logger: %w", err)
+			l.ErrorContext(ctx, "stopping", slogutil.KeyError, err)
 		}
 	}
 }

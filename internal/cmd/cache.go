@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/validate"
 	"github.com/c2h5oh/datasize"
 )
 
@@ -34,41 +34,23 @@ func (c *cacheConfig) toInternal() (conf *dnssvc.CacheConfig) {
 }
 
 // type check
-var _ validator = (*cacheConfig)(nil)
+var _ validate.Interface = (*cacheConfig)(nil)
 
-// validate implements the [validator] interface for *cacheConfig.
-func (c *cacheConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *cacheConfig.
+func (c *cacheConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
-	} else if !c.Enabled {
+	}
+
+	if !c.Enabled {
 		// Don't validate cache settings if it's disabled.
 		return nil
 	}
 
-	var errs []error
-
-	// TODO(e.burkov):  Remove [math.MaxInt] constraint when [datasize.ByteSize]
-	// is supported by proxy.
-
-	if c.Size == 0 || c.Size > math.MaxInt {
-		err = fmt.Errorf(
-			"size: %w: must be positive and less than %d; got %d",
-			errors.ErrOutOfRange,
-			math.MaxInt,
-			c.Size,
-		)
-		errs = append(errs, err)
-	}
-
-	if c.Size == 0 || c.Size > math.MaxInt {
-		err = fmt.Errorf(
-			"client_size: %w: must be positive and less than %d; got %d",
-			errors.ErrOutOfRange,
-			math.MaxInt,
-			c.Size,
-		)
-		errs = append(errs, err)
-	}
-
-	return errors.Join(errs...)
+	return errors.Join(
+		// TODO(e.burkov):  Remove [math.MaxInt] constraint when
+		// [datasize.ByteSize] is supported by proxy.
+		validate.InRange("size", c.Size, 1, math.MaxInt),
+		validate.InRange("client_size", c.ClientSize, 1, math.MaxInt),
+	)
 }

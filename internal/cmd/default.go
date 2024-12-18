@@ -31,7 +31,7 @@ func filterInterfaceAddrs(
 	addrs []net.Addr,
 	set netutil.SubnetSet,
 	p uint16,
-) (confs ipPortConfigs) {
+) (confs []*ipPortConfig) {
 	for _, a := range addrs {
 		addrStr := a.String()
 		pref, err := netip.ParsePrefix(addrStr)
@@ -66,7 +66,7 @@ func isListenable(addr netip.Addr) (ok bool) {
 
 // allListenableAddresses returns all the addresses of network interfaces that
 // are local and are not link-local unicast addresses.
-func allListenableAddresses() (laddrs ipPortConfigs, err error) {
+func allListenableAddresses() (laddrs []*ipPortConfig, err error) {
 	netAddrs, err := net.InterfaceAddrs()
 	if err != nil {
 		return nil, fmt.Errorf("getting interfaces addresses: %w", err)
@@ -103,7 +103,7 @@ func newDefaultDNSConfig() (c *dnsConfig, err error) {
 		return nil, err
 	}
 
-	bootstrapServers := ipPortConfigs{{
+	bootstrapServers := []*ipPortConfig{{
 		Address: netip.AddrPortFrom(netip.MustParseAddr("9.9.9.10"), defaultPlainDNSPort),
 	}, {
 		Address: netip.AddrPortFrom(netip.MustParseAddr("149.112.112.10"), defaultPlainDNSPort),
@@ -120,7 +120,7 @@ func newDefaultDNSConfig() (c *dnsConfig, err error) {
 			Match: nil,
 		},
 	}
-	fallbackServers := urlConfigs{{
+	fallbackServers := []*urlConfig{{
 		Address: "tls://94.140.14.140",
 	}}
 
@@ -133,15 +133,15 @@ func newDefaultDNSConfig() (c *dnsConfig, err error) {
 		},
 		Bootstrap: &bootstrapConfig{
 			Servers: bootstrapServers,
-			Timeout: timeutil.Duration{Duration: defaultUpstreamTimeout},
+			Timeout: timeutil.Duration(defaultUpstreamTimeout),
 		},
 		Upstream: &upstreamConfig{
 			Groups:  upstreamGroups,
-			Timeout: timeutil.Duration{Duration: defaultUpstreamTimeout},
+			Timeout: timeutil.Duration(defaultUpstreamTimeout),
 		},
 		Fallback: &fallbackConfig{
 			Servers: fallbackServers,
-			Timeout: timeutil.Duration{Duration: defaultUpstreamTimeout},
+			Timeout: timeutil.Duration(defaultUpstreamTimeout),
 		},
 	}, nil
 }

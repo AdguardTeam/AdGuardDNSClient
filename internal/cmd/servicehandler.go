@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/AdguardTeam/golibs/errors"
@@ -65,11 +66,10 @@ func (h *serviceHandler) shutdown(ctx context.Context, l *slog.Logger) (err erro
 	l.InfoContext(ctx, "shutting down")
 
 	var errs []error
-	for i := len(h.services) - 1; i >= 0; i-- {
-		s := h.services[i]
+	for i, s := range slices.Backward(h.services) {
 		err = s.Shutdown(ctx)
 		if err != nil {
-			err = fmt.Errorf("service at index %d: %w", i, err)
+			err = fmt.Errorf("service: at index %d: %w", i, err)
 			errs = append(errs, err)
 		}
 	}

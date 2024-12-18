@@ -39,6 +39,8 @@ func Main() {
 	conf, err := handleServiceConfig(opts.serviceAction)
 	l, logFile, confLoggerErrs := newConfigLogger(l, logFile, opts, envs, conf)
 
+	reportPrevErrs(ctx, l, envsErrs, envsLoggerErr, confLoggerErrs)
+
 	prog := &program{
 		conf:    conf,
 		done:    make(chan struct{}),
@@ -47,8 +49,6 @@ func Main() {
 		logFile: logFile,
 	}
 
-	reportPrevErrs(ctx, l, envsErrs, envsLoggerErr, confLoggerErrs)
-
 	check(ctx, prog, err)
 
 	svc, err := osservice.New(prog, newServiceConfig())
@@ -56,7 +56,7 @@ func Main() {
 
 	if opts.serviceAction != "" {
 		exitCode := control(svc, opts.serviceAction)
-		prog.closeLogs()
+		prog.closeLogs(ctx)
 
 		os.Exit(exitCode)
 	}
@@ -64,7 +64,7 @@ func Main() {
 	err = svc.Run()
 	check(ctx, prog, err)
 
-	prog.closeLogs()
+	prog.closeLogs(ctx)
 }
 
 // reportPrevErrs reports errors that were collected while there was no logger.
@@ -75,16 +75,16 @@ func reportPrevErrs(
 	loggerErr error,
 	confLoggerErrs []error,
 ) {
-	if len(envsErrs) > 0 {
-		l.ErrorContext(ctx, "parsing environment", slogutil.KeyError, errors.Join(envsErrs...))
+	if err := errors.Join(envsErrs...); err != nil {
+		l.ErrorContext(ctx, "parsing environment", slogutil.KeyError, err)
 	}
 
 	if loggerErr != nil {
 		l.ErrorContext(ctx, "creating env logger", slogutil.KeyError, loggerErr)
 	}
 
-	if len(confLoggerErrs) > 0 {
-		l.ErrorContext(ctx, "creating conf logger", slogutil.KeyError, errors.Join(confLoggerErrs...))
+	if err := errors.Join(confLoggerErrs...); err != nil {
+		l.ErrorContext(ctx, "creating conf logger", slogutil.KeyError, err)
 	}
 }
 
@@ -97,7 +97,7 @@ func check(ctx context.Context, prog *program, err error) {
 	}
 
 	prog.logger.ErrorContext(ctx, "fatal error", slogutil.KeyError, err)
-	prog.closeLogs()
+	prog.closeLogs(ctx)
 
 	os.Exit(osutil.ExitCodeFailure)
 }

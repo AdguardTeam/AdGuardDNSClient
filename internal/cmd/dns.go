@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log/slog"
 	"net/netip"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/logutil/slogutil"
 	"github.com/AdguardTeam/golibs/netutil"
+	"github.com/AdguardTeam/golibs/validate"
 )
 
 // dnsConfig is the configuration for handling DNS.
@@ -31,15 +31,15 @@ type dnsConfig struct {
 }
 
 // type check
-var _ validator = (*dnsConfig)(nil)
+var _ validate.Interface = (*dnsConfig)(nil)
 
-// validate implements the [validator] interface for *dnsConfig.
-func (c *dnsConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *dnsConfig.
+func (c *dnsConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	validators := container.KeyValues[string, validator]{{
+	validators := container.KeyValues[string, validate.Interface]{{
 		Key:   "cache",
 		Value: c.Cache,
 	}, {
@@ -58,11 +58,7 @@ func (c *dnsConfig) validate() (err error) {
 
 	var errs []error
 	for _, v := range validators {
-		err = v.Value.validate()
-		if err != nil {
-			err = fmt.Errorf("%s: %w", v.Key, err)
-			errs = append(errs, err)
-		}
+		errs = validate.Append(errs, v.Key, v.Value)
 	}
 
 	return errors.Join(errs...)
@@ -71,6 +67,11 @@ func (c *dnsConfig) validate() (err error) {
 // toInternal converts the DNS configuration to the internal representation.  c
 // must be valid.
 func (c *dnsConfig) toInternal(logger *slog.Logger) (conf *dnssvc.Config) {
+	listenAddrs := make([]netip.AddrPort, 0, len(c.Server.ListenAddresses))
+	for _, s := range c.Server.ListenAddresses {
+		listenAddrs = append(listenAddrs, s.Address)
+	}
+
 	return &dnssvc.Config{
 		BaseLogger: logger,
 		Logger:     logger.With(slogutil.KeyPrefix, "dnssvc"),
@@ -81,7 +82,7 @@ func (c *dnsConfig) toInternal(logger *slog.Logger) (conf *dnssvc.Config) {
 		Upstreams:      c.Upstream.toInternal(),
 		Fallbacks:      c.Fallback.toInternal(),
 		ClientGetter:   dnssvc.DefaultClientGetter{},
-		ListenAddrs:    c.Server.ListenAddresses.toInternal(),
+		ListenAddrs:    listenAddrs,
 	}
 }
 
@@ -93,52 +94,13 @@ type ipPortConfig struct {
 }
 
 // type check
-var _ validator = (*ipPortConfig)(nil)
+var _ validate.Interface = (*ipPortConfig)(nil)
 
-// validate implements the [validator] interface for *ipPortConfig.
-func (c *ipPortConfig) validate() (err error) {
-	switch {
-	case c == nil:
-		return errors.ErrNoValue
-	case c.Address == netip.AddrPort{}:
-		return fmt.Errorf("address: %w", errors.ErrEmptyValue)
-	default:
-		return nil
-	}
-}
-
-// ipPortConfigs is a slice of *ipPortConfig for validation and conversion
-// convenience.
-type ipPortConfigs []*ipPortConfig
-
-// toInternal converts the addresses to the internal representation.  c must be
-// valid.
-func (c ipPortConfigs) toInternal() (addrs []netip.AddrPort) {
-	addrs = make([]netip.AddrPort, 0, len(c))
-	for _, addr := range c {
-		addrs = append(addrs, addr.Address)
-	}
-
-	return addrs
-}
-
-// type check
-var _ validator = (ipPortConfigs)(nil)
-
-// validate implements the [validator] interface for ipPortConfigs.
-func (c ipPortConfigs) validate() (res error) {
-	if len(c) == 0 {
+// Validate implements the [validate.Interface] interface for *ipPortConfig.
+func (c *ipPortConfig) Validate() (err error) {
+	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	var errs []error
-	for i, addr := range c {
-		err := addr.validate()
-		if err != nil {
-			err = fmt.Errorf("at index %d: %w", i, err)
-			errs = append(errs, err)
-		}
-	}
-
-	return errors.Join(errs...)
+	return validate.NotEmpty("address", c.Address)
 }

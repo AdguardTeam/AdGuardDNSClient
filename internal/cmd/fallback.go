@@ -1,43 +1,36 @@
 package cmd
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/timeutil"
+	"github.com/AdguardTeam/golibs/validate"
 )
 
 // fallbackConfig is the configuration for the fallback DNS upstream servers.
 type fallbackConfig struct {
 	// Servers is the list of DNS servers to use for fallback.
-	Servers urlConfigs `yaml:"servers"`
+	Servers []*urlConfig `yaml:"servers"`
 
 	// Timeout constrains the time for sending requests and receiving responses.
 	Timeout timeutil.Duration `yaml:"timeout"`
 }
 
 // type check
-var _ validator = (*fallbackConfig)(nil)
+var _ validate.Interface = (*fallbackConfig)(nil)
 
-// validate implements the [validator] interface for *fallbackConfig.
-func (c *fallbackConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *fallbackConfig.
+func (c *fallbackConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	var errs []error
-
-	if c.Timeout.Duration <= 0 {
-		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errors.ErrNotPositive)
-		errs = append(errs, err)
+	errs := []error{
+		validate.Positive("timeout", c.Timeout),
 	}
-
-	err = c.Servers.validate()
-	if err != nil {
-		err = fmt.Errorf("servers: %w", err)
-		errs = append(errs, err)
-	}
+	errs = validate.AppendSlice(errs, "servers", c.Servers)
 
 	return errors.Join(errs...)
 }
@@ -46,7 +39,7 @@ func (c *fallbackConfig) validate() (err error) {
 // valid.
 func (c *fallbackConfig) toInternal() (conf *dnssvc.FallbackConfig) {
 	conf = &dnssvc.FallbackConfig{
-		Timeout: c.Timeout.Duration,
+		Timeout: time.Duration(c.Timeout),
 	}
 
 	for _, addrConf := range c.Servers {
@@ -62,32 +55,14 @@ type urlConfig struct {
 	Address string `yaml:"address"`
 }
 
-// urlConfigs is a slice of *urlConfig for validation convenience.
-type urlConfigs []*urlConfig
+// type check
+var _ validate.Interface = (*urlConfig)(nil)
 
-// validate returns an error if c is not valid.  It doesn't include its own name
-// into an error to be used in different configuration sections, and therefore
-// violates the [validator.validate] contract.
-func (c urlConfigs) validate() (err error) {
-	if len(c) == 0 {
+// Validate implements the [validate.Interface] interface for *urlConfig.
+func (c *urlConfig) Validate() (err error) {
+	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	var errs []error
-
-	for i, addr := range c {
-		switch {
-		case addr == nil:
-			err = errors.ErrNoValue
-		case addr.Address == "":
-			err = errors.ErrEmptyValue
-		default:
-			continue
-		}
-
-		err = fmt.Errorf("at index %d: address: %w", i, err)
-		errs = append(errs, err)
-	}
-
-	return errors.Join(errs...)
+	return validate.NotEmpty("address", c.Address)
 }

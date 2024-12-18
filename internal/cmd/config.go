@@ -8,6 +8,7 @@ import (
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcos"
 	"github.com/AdguardTeam/golibs/container"
 	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/validate"
 	"gopkg.in/yaml.v3"
 )
 
@@ -68,14 +69,19 @@ func handleServiceConfig(action serviceAction) (conf *configuration, err error) 
 			return nil, err
 		}
 
-		err = conf.validate()
+		err = conf.Validate()
 		if err != nil {
 			return nil, fmt.Errorf("configuration: %w", err)
 		}
 	case serviceActionInstall:
 		err = agdcos.ValidateExecPath(execPath)
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, "service executable must be located in the /Applications/ directory or its subdirectories")
+			// locWarnMsg is a warning message that is printed to stderr when
+			// the service executable is not located correctly.
+			const locWarnMsg = "service executable must be located " +
+				"in the /Applications/ directory or its subdirectories"
+
+			_, _ = fmt.Fprintln(os.Stderr, locWarnMsg)
 
 			// Don't wrap the error since it's informative enough as is.
 			return nil, err
@@ -108,7 +114,6 @@ func parseConfig(path string) (conf *configuration, err error) {
 	defer func() { err = errors.WithDeferred(err, f.Close()) }()
 
 	conf = &configuration{}
-
 	err = yaml.NewDecoder(f).Decode(conf)
 	if err != nil {
 		return nil, err
@@ -118,22 +123,22 @@ func parseConfig(path string) (conf *configuration, err error) {
 }
 
 // type check
-var _ validator = (*configuration)(nil)
+var _ validate.Interface = (*configuration)(nil)
 
-// validate implements the [validator] interface for *configuration.
-func (c *configuration) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *configuration.
+func (c *configuration) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	err = c.SchemaVersion.validate()
+	err = validate.InRange("schema_version", c.SchemaVersion, 1, currentSchemaVersion)
 	if err != nil {
 		// Don't validate the rest of the configuration of invalid schema
 		// version.
 		return fmt.Errorf("schema_version: %w", err)
 	}
 
-	validators := container.KeyValues[string, validator]{{
+	validators := container.KeyValues[string, validate.Interface]{{
 		Key:   "dns",
 		Value: c.DNS,
 	}, {
@@ -146,11 +151,7 @@ func (c *configuration) validate() (err error) {
 
 	var errs []error
 	for _, v := range validators {
-		err = v.Value.validate()
-		if err != nil {
-			err = fmt.Errorf("%s: %w", v.Key, err)
-			errs = append(errs, err)
-		}
+		errs = validate.Append(errs, v.Key, v.Value)
 	}
 
 	return errors.Join(errs...)
@@ -163,18 +164,3 @@ type schemaVersion uint
 
 // currentSchemaVersion is the current version of the configuration structure.
 const currentSchemaVersion schemaVersion = 1
-
-// type check
-var _ validator = (schemaVersion)(currentSchemaVersion)
-
-// validate implements the [validator] interface for schemaVersion.
-func (v schemaVersion) validate() (err error) {
-	switch {
-	case v == 0:
-		return errors.ErrNotPositive
-	case v > currentSchemaVersion:
-		return fmt.Errorf("got %d, most recent is %d", currentSchemaVersion, v)
-	default:
-		return nil
-	}
-}

@@ -13,13 +13,14 @@ type upstreamConfigs map[netip.Prefix]*proxy.UpstreamConfig
 // clients creates a list of clients from confs.
 func (confs upstreamConfigs) clients(cacheConf *CacheConfig) (clients []*client) {
 	for cli, conf := range confs {
+		cliConf := proxy.NewCustomUpstreamConfig(
+			conf,
+			cacheConf.Enabled,
+			cacheConf.ClientSize,
+			false,
+		)
 		clients = append(clients, &client{
-			conf: proxy.NewCustomUpstreamConfig(
-				conf,
-				cacheConf.Enabled,
-				cacheConf.ClientSize,
-				false,
-			),
+			conf:   cliConf,
 			prefix: cli,
 		})
 	}
@@ -74,7 +75,6 @@ func (cs *clientStorage) close() (errs []error) {
 		err := c.conf.Close()
 		if err != nil {
 			err = fmt.Errorf("closing upstreams for client %s: %w", c.prefix, err)
-
 			errs = append(errs, err)
 		}
 	}

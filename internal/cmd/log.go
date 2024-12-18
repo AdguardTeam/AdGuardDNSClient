@@ -11,6 +11,7 @@ import (
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/logutil/slogutil"
+	"github.com/AdguardTeam/golibs/validate"
 )
 
 // Constants that define the log output.
@@ -42,29 +43,28 @@ type logConfig struct {
 }
 
 // type check
-var _ validator = (*logConfig)(nil)
+var _ validate.Interface = (*logConfig)(nil)
 
-// validate implements the [validator] interface for *logConfig.
-func (c *logConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *logConfig.
+func (c *logConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	var errs []error
+	var outErr error
 	switch c.Output {
 	case outputSyslog, outputStdout, outputStderr:
 		// Go on.
 	default:
 		if !filepath.IsAbs(c.Output) {
-			errs = append(errs, fmt.Errorf("unsupported log output: %q", c.Output))
+			outErr = fmt.Errorf("unsupported log output: %q", c.Output)
 		}
 	}
 
 	// TODO(e.burkov):  Add unmarshalling to [slogutil.Format].
-	_, err = slogutil.NewFormat(string(c.Format))
-	errs = append(errs, err)
+	_, fmtErr := slogutil.NewFormat(string(c.Format))
 
-	return errors.Join(errs...)
+	return errors.Join(outErr, fmtErr)
 }
 
 // newEnvLogger returns a new default logger using the information from the

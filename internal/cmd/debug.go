@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/validate"
 )
 
 // debugConfig is the configuration for debugging features.
@@ -13,15 +14,15 @@ type debugConfig struct {
 }
 
 // type check
-var _ validator = (*debugConfig)(nil)
+var _ validate.Interface = (*debugConfig)(nil)
 
-// validate implements the [validator] interface for *debugConfig.
-func (c *debugConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *debugConfig.
+func (c *debugConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	err = c.Pprof.validate()
+	err = c.Pprof.Validate()
 	if err != nil {
 		return fmt.Errorf("pprof: %w", err)
 	}
@@ -39,10 +40,10 @@ type pprofConfig struct {
 }
 
 // type check
-var _ validator = (*pprofConfig)(nil)
+var _ validate.Interface = (*pprofConfig)(nil)
 
-// validate implements the [validator] interface for *pprofConfig.
-func (c *pprofConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *pprofConfig.
+func (c *pprofConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}

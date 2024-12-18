@@ -1,18 +1,20 @@
 package cmd
 
 import (
-	"fmt"
+	"net/netip"
+	"time"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/timeutil"
+	"github.com/AdguardTeam/golibs/validate"
 )
 
 // bootstrapConfig is the configuration for resolving upstream's hostnames.
 type bootstrapConfig struct {
 	// Servers is the list of DNS servers to use for resolving upstream's
 	// hostnames.
-	Servers ipPortConfigs `yaml:"servers"`
+	Servers []*ipPortConfig `yaml:"servers"`
 
 	// Timeout constrains the time for sending requests and receiving responses.
 	Timeout timeutil.Duration `yaml:"timeout"`
@@ -21,33 +23,30 @@ type bootstrapConfig struct {
 // toInternal converts the bootstrap configuration to the internal
 // representation.  c must be valid.
 func (c *bootstrapConfig) toInternal() (conf *dnssvc.BootstrapConfig) {
+	addrs := make([]netip.AddrPort, 0, len(c.Servers))
+	for _, s := range c.Servers {
+		addrs = append(addrs, s.Address)
+	}
+
 	return &dnssvc.BootstrapConfig{
-		Timeout:   c.Timeout.Duration,
-		Addresses: c.Servers.toInternal(),
+		Timeout:   time.Duration(c.Timeout),
+		Addresses: addrs,
 	}
 }
 
 // type check
-var _ validator = (*bootstrapConfig)(nil)
+var _ validate.Interface = (*bootstrapConfig)(nil)
 
-// validate implements the [validator] interface for *bootstrapConfig.
-func (c *bootstrapConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *bootstrapConfig.
+func (c *bootstrapConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	var errs []error
-
-	if c.Timeout.Duration <= 0 {
-		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errors.ErrNotPositive)
-		errs = append(errs, err)
+	errs := []error{
+		validate.Positive("timeout", c.Timeout),
 	}
-
-	err = c.Servers.validate()
-	if err != nil {
-		err = fmt.Errorf("servers: %w", err)
-		errs = append(errs, err)
-	}
+	errs = validate.AppendSlice(errs, "servers", c.Servers)
 
 	return errors.Join(errs...)
 }

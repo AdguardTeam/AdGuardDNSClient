@@ -6,12 +6,14 @@ import (
 	"net/netip"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/dnssvc"
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/netutil"
 	"github.com/AdguardTeam/golibs/timeutil"
+	"github.com/AdguardTeam/golibs/validate"
 )
 
 // upstreamConfig is the configuration for the DNS upstream servers.
@@ -27,7 +29,7 @@ type upstreamConfig struct {
 // valid.
 func (c *upstreamConfig) toInternal() (conf *dnssvc.UpstreamConfig) {
 	conf = &dnssvc.UpstreamConfig{
-		Timeout: c.Timeout.Duration,
+		Timeout: time.Duration(c.Timeout),
 	}
 
 	for name, g := range c.Groups {
@@ -49,25 +51,18 @@ func (c *upstreamConfig) toInternal() (conf *dnssvc.UpstreamConfig) {
 }
 
 // type check
-var _ validator = (*upstreamConfig)(nil)
+var _ validate.Interface = (*upstreamConfig)(nil)
 
-// validate implements the [validator] interface for *upstreamConfig.
-func (c *upstreamConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for *upstreamConfig.
+func (c *upstreamConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}
 
-	var errs []error
-
-	if c.Timeout.Duration <= 0 {
-		err = fmt.Errorf("got timeout %s: %w", c.Timeout, errors.ErrNotPositive)
-		errs = append(errs, err)
+	errs := []error{
+		validate.Positive("timeout", c.Timeout),
 	}
-
-	if err = c.Groups.validate(); err != nil {
-		err = fmt.Errorf("groups: %w", err)
-		errs = append(errs, err)
-	}
+	errs = validate.Append(errs, "groups", c.Groups)
 
 	return errors.Join(errs...)
 }
@@ -95,12 +90,10 @@ func (s matchSet) addMatch(name agdc.UpstreamGroupName, m *upstreamMatchConfig) 
 	}
 
 	if another == name {
-		err = errors.ErrDuplicated
-	} else {
-		err = fmt.Errorf("conflicts with group %q", another)
+		return errors.ErrDuplicated
 	}
 
-	return err
+	return fmt.Errorf("conflicts with group %q", another)
 }
 
 // upstreamGroupsConfig is the configuration for a set of groups of DNS upstream
@@ -121,10 +114,11 @@ var predefinedGroups = []agdc.UpstreamGroupName{
 }
 
 // type check
-var _ validator = (upstreamGroupsConfig)(nil)
+var _ validate.Interface = (upstreamGroupsConfig)(nil)
 
-// validate implements the [validator] interface for upstreamGroupsConfig.
-func (c upstreamGroupsConfig) validate() (err error) {
+// Validate implements the [validate.Interface] interface for
+// upstreamGroupsConfig.
+func (c upstreamGroupsConfig) Validate() (err error) {
 	if c == nil {
 		return errors.ErrNoValue
 	}
@@ -180,13 +174,11 @@ func (c *upstreamGroupConfig) validateAsPredefined() (err error) {
 		return errors.ErrNoValue
 	}
 
-	var errs []error
-
-	if c.Address == "" {
-		err = fmt.Errorf("address: %w", errors.ErrNoValue)
-		errs = append(errs, err)
+	errs := []error{
+		validate.NotEmpty("address", c.Address),
 	}
 
+	// TODO(e.burkov):  Add validate.Empty for entities that must be empty.
 	if len(c.Match) > 0 {
 		err = fmt.Errorf("match: %w", errors.ErrNotEmpty)
 		errs = append(errs, err)
@@ -202,11 +194,8 @@ func (c *upstreamGroupConfig) validateAsCustom(s matchSet, n agdc.UpstreamGroupN
 		return errors.ErrNoValue
 	}
 
-	var errs []error
-
-	if c.Address == "" {
-		err = fmt.Errorf("address: %w", errors.ErrNoValue)
-		errs = append(errs, err)
+	errs := []error{
+		validate.NotEmpty("address", c.Address),
 	}
 
 	for i, m := range c.Match {
@@ -255,8 +244,11 @@ func (c *upstreamMatchConfig) validateValues(s matchSet, name agdc.UpstreamGroup
 		}
 	}
 
+	// TODO(e.burkov):  It may be useful to be able to specify the whole address
+	// and only change the mask.
 	if c.Client.Prefix != c.Client.Masked() {
-		err = fmt.Errorf("client: %s must has %d significant bits", c.Client, c.Client.Bits())
+		bitNum := c.Client.Bits()
+		err = fmt.Errorf("client: %s must has at most %d significant bits", c.Client, bitNum)
 		errs = append(errs, err)
 	}
 

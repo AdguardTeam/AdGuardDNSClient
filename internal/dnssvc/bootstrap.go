@@ -36,7 +36,7 @@ func newResolvers(conf *BootstrapConfig) (boot upstream.Resolver, closers []io.C
 		var b *upstream.UpstreamResolver
 		b, err = upstream.NewUpstreamResolver(addr.String(), opts)
 		if err != nil {
-			err = fmt.Errorf("address at index %d: %w", i, err)
+			err = fmt.Errorf("resolvers: at index %d: %w", i, err)
 			errs = append(errs, err)
 
 			continue

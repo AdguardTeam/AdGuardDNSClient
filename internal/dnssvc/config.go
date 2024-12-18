@@ -19,7 +19,7 @@ type Config struct {
 	// PrivateSubnets is the set of IP networks considered private.  The PTR
 	// requests for ARPA domains considered private if the domain contains an IP
 	// from one of the networks and the request came from the client within one
-	// of the networks.
+	// of the networks.  It must not be nil.
 	PrivateSubnets netutil.SubnetSet
 
 	// Cache is the configuration for the DNS results cache.  It must not be
