@@ -1,6 +1,6 @@
 module github.com/AdguardTeam/AdGuardDNSClient/internal/tools
 
-go 1.23.4
+go 1.23.5
 
 require (
 	github.com/fzipp/gocyclo v0.6.0
