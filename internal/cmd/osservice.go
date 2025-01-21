@@ -87,7 +87,7 @@ func control(svc osservice.Service, action serviceAction) (exitCode osutil.ExitC
 	}
 
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "performing action %q: retrieving status: %s\n", action, err)
+		_, _ = fmt.Fprintf(os.Stderr, "performing action %q: %s\n", action, err)
 
 		return osutil.ExitCodeFailure
 	}

@@ -51,20 +51,23 @@ func (c *logConfig) Validate() (err error) {
 		return errors.ErrNoValue
 	}
 
-	var outErr error
+	var errs []error
 	switch c.Output {
 	case outputSyslog, outputStdout, outputStderr:
 		// Go on.
 	default:
 		if !filepath.IsAbs(c.Output) {
-			outErr = fmt.Errorf("unsupported log output: %q", c.Output)
+			err = fmt.Errorf("output: %w: %q", errors.ErrBadEnumValue, c.Output)
+			errs = append(errs, err)
 		}
 	}
 
 	// TODO(e.burkov):  Add unmarshalling to [slogutil.Format].
-	_, fmtErr := slogutil.NewFormat(string(c.Format))
+	if _, err = slogutil.NewFormat(string(c.Format)); err != nil {
+		errs = append(errs, err)
+	}
 
-	return errors.Join(outErr, fmtErr)
+	return errors.Join(errs...)
 }
 
 // newEnvLogger returns a new default logger using the information from the

@@ -174,17 +174,10 @@ func (c *upstreamGroupConfig) validateAsPredefined() (err error) {
 		return errors.ErrNoValue
 	}
 
-	errs := []error{
+	return errors.Join(
 		validate.NotEmpty("address", c.Address),
-	}
-
-	// TODO(e.burkov):  Add validate.Empty for entities that must be empty.
-	if len(c.Match) > 0 {
-		err = fmt.Errorf("match: %w", errors.ErrNotEmpty)
-		errs = append(errs, err)
-	}
-
-	return errors.Join(errs...)
+		validate.EmptySlice("match", c.Match),
+	)
 }
 
 // validateAsCustom returns an error if c is not a valid custom group

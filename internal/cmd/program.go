@@ -21,8 +21,10 @@ type program struct {
 
 	// conf is the parsed configuration to run the program.  It appears nil on
 	// any service action and must not be accessed.
-	conf    *configuration
-	logger  *slog.Logger
+	conf   *configuration
+	logger *slog.Logger
+
+	// TODO(e.burkov):  Use [io.Closer].
 	logFile *os.File
 	done    chan struct{}
 	errCh   chan error
