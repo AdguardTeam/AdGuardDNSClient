@@ -185,7 +185,7 @@ func TestSyslogHandler_Handle_race(t *testing.T) {
 	const numGoroutine = 1_000
 
 	wg := &sync.WaitGroup{}
-	for i := 0; i < numGoroutine; i++ {
+	for range numGoroutine {
 		wg.Add(1)
 
 		go func() {
@@ -197,17 +197,16 @@ func TestSyslogHandler_Handle_race(t *testing.T) {
 
 	wg.Wait()
 
-	textOutputStrings := strings.Split(output.String(), "\n")
+	const wantMsg = `level=INFO msg="test message" attr=abc` + "\n"
 
-	const wantMsg = `level=INFO msg="test message" attr=abc`
-
-	for i := 0; i < numGoroutine; i++ {
-		assert.Equal(t, wantMsg, textOutputStrings[i])
+	var num int
+	for s := range strings.Lines(output.String()) {
+		assert.Equal(t, wantMsg, s)
+		num++
 	}
-}
 
-// errSink is a sink for benchmark results.
-var errSink error
+	assert.Equal(t, numGoroutine, num)
+}
 
 func BenchmarkSyslogHandler_Handle(b *testing.B) {
 	l := newTestLogger()
@@ -224,17 +223,19 @@ func BenchmarkSyslogHandler_Handle(b *testing.B) {
 		slog.String("string", "abc"),
 	)
 
+	var err error
 	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		errSink = h.Handle(ctx, r)
+	for b.Loop() {
+		err = h.Handle(ctx, r)
 	}
 
-	require.NoError(b, errSink)
+	require.NoError(b, err)
 
-	// goos: darwin
-	// goarch: amd64
-	// pkg: github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog
-	// cpu: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
-	// BenchmarkSyslogHandler_Handle-12		2365461		501.1 ns/op		64 B/op		1 allocs/op
+	// Most recent results:
+	//
+	//	goos: darwin
+	//	goarch: amd64
+	//	pkg: github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog
+	//	cpu: Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+	//	BenchmarkSyslogHandler_Handle-12    	 2537618	       471.6 ns/op	      64 B/op	       1 allocs/op
 }
