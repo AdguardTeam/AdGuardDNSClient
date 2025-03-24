@@ -224,6 +224,9 @@ func TestDNSService(t *testing.T) {
 			Timeout: testTimeout,
 		},
 		ClientGetter: cliGetter,
+		BindRetry: &dnssvc.BindRetryConfig{
+			Enabled: false,
+		},
 		ListenAddrs: []netip.AddrPort{
 			netip.AddrPortFrom(netutil.IPv4Localhost(), 0),
 		},

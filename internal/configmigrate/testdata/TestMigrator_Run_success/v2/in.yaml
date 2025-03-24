@@ -1,0 +1,5 @@
+schema_version: 1
+dns:
+    server:
+        listen_addresses:
+            - address: '192.0.2.1:53'

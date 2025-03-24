@@ -22,6 +22,44 @@ NOTE: Add new changes BELOW THIS COMMENT.
 
 [go-1.24.1]: https://groups.google.com/g/golang-announce/c/4t3lzH3I0eI
 
+### Changed
+
+#### Configuration changes
+
+In this release, the schema version has changed from 1 to 2.
+
+- The new object `bind_retry` has been added to the `dns.server` object.
+
+    ```yaml
+    # BEFORE:
+    dns:
+        server:
+            # …
+        # …
+    # …
+    schema_version: 1
+
+    # AFTER:
+    dns:
+        server:
+            bind_retry:
+                enabled: true
+                interval: 1s
+                count: 4
+            # …
+        # …
+    # …
+    schema_version: 2
+    ```
+
+To rollback this change, remove the `dns.server.bind_retry` object and set the `schema_version` to `1`.
+
+### Fixed
+
+- Failed binding to listen addresses when installed as Windows service ([#11]).
+
+[#11]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/11
+
 <!--
 NOTE: Add new changes ABOVE THIS COMMENT.
 -->

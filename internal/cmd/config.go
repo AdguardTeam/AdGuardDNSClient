@@ -1,13 +1,18 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcos"
+	"github.com/AdguardTeam/AdGuardDNSClient/internal/configmigrate"
 	"github.com/AdguardTeam/golibs/container"
 	"github.com/AdguardTeam/golibs/errors"
+	"github.com/AdguardTeam/golibs/logutil/slogutil"
+	"github.com/AdguardTeam/golibs/timeutil"
 	"github.com/AdguardTeam/golibs/validate"
 	"gopkg.in/yaml.v3"
 )
@@ -27,18 +32,18 @@ type configuration struct {
 
 	// SchemaVersion is the current version of this structure.  This is bumped
 	// each time the configuration changes breaking backwards compatibility.
-	SchemaVersion schemaVersion `yaml:"schema_version"`
+	SchemaVersion configmigrate.SchemaVersion `yaml:"schema_version"`
 }
 
-// defaultConfigPath is the path to the configuration file.
+// defaultConfigName is the path to the configuration file.
 //
 // TODO(e.burkov):  Make configurable via flags or environment.
-const defaultConfigPath = "config.yaml"
+const defaultConfigName = "config.yaml"
 
 // absolutePaths return the default path to the configuration file.  It assumes
 // that the configuration file is located in the same directory as the
 // executable.
-func absolutePaths() (execPath, confPath string, err error) {
+func absolutePaths() (execPath, workDir string, err error) {
 	execPath, err = os.Executable()
 	if err != nil {
 		return "", "", fmt.Errorf("getting executable path: %w", err)
@@ -49,13 +54,19 @@ func absolutePaths() (execPath, confPath string, err error) {
 		return "", "", fmt.Errorf("getting absolute path of %q: %w", execPath, err)
 	}
 
-	return absExecPath, filepath.Join(filepath.Dir(absExecPath), defaultConfigPath), nil
+	workDir = filepath.Dir(absExecPath)
+
+	return absExecPath, workDir, nil
 }
 
 // handleServiceConfig returns the service configuration based on the specified
 // [serviceAction].
-func handleServiceConfig(action serviceAction) (conf *configuration, err error) {
-	execPath, confPath, err := absolutePaths()
+func handleServiceConfig(
+	ctx context.Context,
+	l *slog.Logger,
+	action serviceAction,
+) (conf *configuration, err error) {
+	execPath, workDir, err := absolutePaths()
 	if err != nil {
 		// Don't wrap the error since it's informative enough as is.
 		return nil, err
@@ -63,41 +74,74 @@ func handleServiceConfig(action serviceAction) (conf *configuration, err error) 
 
 	switch action {
 	case serviceActionNone:
-		conf, err = parseConfig(confPath)
-		if err != nil {
-			// Don't wrap the error since it's informative enough as is.
-			return nil, err
-		}
-
-		err = conf.Validate()
-		if err != nil {
-			return nil, fmt.Errorf("configuration: %w", err)
-		}
+		return handleConfig(ctx, l, workDir)
 	case serviceActionInstall:
-		err = agdcos.ValidateExecPath(execPath)
-		if err != nil {
-			// locWarnMsg is a warning message that is printed to stderr when
-			// the service executable is not located correctly.
-			const locWarnMsg = "service executable must be located " +
-				"in the /Applications/ directory or its subdirectories"
-
-			_, _ = fmt.Fprintln(os.Stderr, locWarnMsg)
-
-			// Don't wrap the error since it's informative enough as is.
-			return nil, err
-		}
-
-		err = writeDefaultConfig(confPath)
-		if err != nil {
-			// Don't wrap the error since it's informative enough as is.
-			return nil, err
-		}
+		return nil, handleInstall(execPath, workDir)
 	default:
 		// No service actions require configuration.
 		return nil, nil
 	}
+}
+
+// handleConfig parses the configuration file located in the [workDir]
+// directory.
+func handleConfig(
+	ctx context.Context,
+	l *slog.Logger,
+	workDir string,
+) (conf *configuration, err error) {
+	migrator := configmigrate.New(&configmigrate.Config{
+		Clock:          timeutil.SystemClock{},
+		Logger:         l.With(slogutil.KeyPrefix, "configmigrate"),
+		WorkingDir:     workDir,
+		ConfigFileName: defaultConfigName,
+	})
+	err = migrator.Run(ctx, configmigrate.VersionLatest)
+	if err != nil {
+		// Don't wrap the error since it's informative enough as is.
+		return nil, err
+	}
+
+	conf, err = parseConfig(filepath.Join(workDir, defaultConfigName))
+	if err != nil {
+		// Don't wrap the error since it's informative enough as is.
+		return nil, err
+	}
+
+	err = conf.Validate()
+	if err != nil {
+		return nil, fmt.Errorf("configuration: %w", err)
+	}
 
 	return conf, nil
+}
+
+// handleInstall creates and writes the default configuration file to the
+// [workDir] directory.
+func handleInstall(execPath, workDir string) (err error) {
+	err = agdcos.ValidateExecPath(execPath)
+	if err != nil {
+		// locWarnMsg is a warning message that is printed to stderr when the
+		// service executable is not located correctly.
+		//
+		// TODO(e.burkov):  Move the OS-specific message to agdcos package,
+		// perhaps, add a structured error with text.
+		const locWarnMsg = "service executable must be located " +
+			"in the /Applications/ directory or its subdirectories"
+
+		_, _ = fmt.Fprintln(os.Stderr, locWarnMsg)
+
+		// Don't wrap the error since it's informative enough as is.
+		return err
+	}
+
+	err = writeDefaultConfig(filepath.Join(workDir, defaultConfigName))
+	if err != nil {
+		// Don't wrap the error since it's informative enough as is.
+		return err
+	}
+
+	return nil
 }
 
 // parseConfig parses the YAML configuration file located at path.
@@ -131,13 +175,6 @@ func (c *configuration) Validate() (err error) {
 		return errors.ErrNoValue
 	}
 
-	err = validate.InRange("schema_version", c.SchemaVersion, 1, currentSchemaVersion)
-	if err != nil {
-		// Don't validate the rest of the configuration of invalid schema
-		// version.
-		return fmt.Errorf("schema_version: %w", err)
-	}
-
 	validators := container.KeyValues[string, validate.Interface]{{
 		Key:   "dns",
 		Value: c.DNS,
@@ -156,11 +193,3 @@ func (c *configuration) Validate() (err error) {
 
 	return errors.Join(errs...)
 }
-
-// schemaVersion is the type for the configuration structure revision.
-//
-// TODO(e.burkov):  Move to configmigrate package.
-type schemaVersion uint
-
-// currentSchemaVersion is the current version of the configuration structure.
-const currentSchemaVersion schemaVersion = 1

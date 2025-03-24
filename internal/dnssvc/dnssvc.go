@@ -119,6 +119,11 @@ func newProxyConfig(
 		TrustedProxies:            trusted,
 		CacheSizeBytes:            conf.Cache.Size,
 		CacheEnabled:              conf.Cache.Enabled,
+		BindRetryConfig: &proxy.BindRetryConfig{
+			Enabled:  conf.BindRetry.Enabled,
+			Interval: conf.BindRetry.Interval,
+			Count:    conf.BindRetry.Count,
+		},
 	}, ups.clients(conf.Cache), nil
 }
 

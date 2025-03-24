@@ -10,6 +10,17 @@ dns:
         client_size: 4MB
     # Serving settings.
     server:
+        # Configuration for retrying binding listen addresses.  This is useful
+        # when the server starts before the network is ready, e.g. when
+        # installed as Windows service.
+        bind_retry:
+            # If true, the server will retry to bind listen addresses specified
+            # number of times.
+            enabled: true
+            # Time to wait between attempts.
+            interval: 1s
+            # Number of attempts after the first failure.
+            count: 4
         # Addresses for server to listen to.
         listen_addresses:
           - address: '127.0.0.1:53'
@@ -45,10 +56,10 @@ dns:
                   - client: '192.168.1.3'
             'abcd1234_dot':
                 address: 'tls://abcd1234.d.adguard-dns.com'
-                # Matches 192.168.1.1 OR 192.168.1.3.
+                # Matches 192.168.1.2 OR 192.168.1.4.
                 match:
-                  - client: '192.168.1.1'
-                  - client: '192.168.1.3'
+                  - client: '192.168.1.2'
+                  - client: '192.168.1.4'
             'efgh5678_doh':
                 address: 'https://d.adguard-dns.com/dns-query/efgh5678'
                 # Matches 192.168.2.1, 192.168.2.2, etc.
@@ -91,4 +102,4 @@ log:
     verbose: false
 # Schema version of this config file.  This is bumped each time the config file
 # format is changed.
-schema_version: 1
+schema_version: 2

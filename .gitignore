@@ -19,3 +19,4 @@
 AdGuardDNSClient
 AdGuardDNSClient.exe
 config.yaml
+backup-*.dir

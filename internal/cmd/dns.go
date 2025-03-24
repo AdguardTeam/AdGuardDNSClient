@@ -83,6 +83,7 @@ func (c *dnsConfig) toInternal(logger *slog.Logger) (conf *dnssvc.Config) {
 		Fallbacks:      c.Fallback.toInternal(),
 		ClientGetter:   dnssvc.DefaultClientGetter{},
 		ListenAddrs:    listenAddrs,
+		BindRetry:      c.Server.BindRetry.toInternal(),
 	}
 }
 

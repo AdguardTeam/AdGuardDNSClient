@@ -36,7 +36,7 @@ func Main() {
 	envs, envsErrs := parseLogEnvs()
 	l, logFile, envsLoggerErr := newEnvLogger(opts, envs)
 
-	conf, err := handleServiceConfig(opts.serviceAction)
+	conf, err := handleServiceConfig(ctx, l, opts.serviceAction)
 	l, logFile, confLoggerErrs := newConfigLogger(l, logFile, opts, envs, conf)
 
 	reportPrevErrs(ctx, l, envsErrs, envsLoggerErr, confLoggerErrs)

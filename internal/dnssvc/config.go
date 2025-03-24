@@ -3,6 +3,7 @@ package dnssvc
 import (
 	"log/slog"
 	"net/netip"
+	"time"
 
 	"github.com/AdguardTeam/golibs/netutil"
 )
@@ -39,7 +40,24 @@ type Config struct {
 	// not be nil.
 	ClientGetter ClientGetter
 
+	// BindRetry is the configuration for retrying to bind to listen addresses.
+	// It must not be nil.
+	BindRetry *BindRetryConfig
+
 	// ListenAddrs is the list of served addresses.  It must contain at least
 	// one entry.  It must not be empty and must contain only valid addresses.
 	ListenAddrs []netip.AddrPort
+}
+
+// BindRetryConfig configures retrying to bind to listen addresses.
+type BindRetryConfig struct {
+	// Enabled enables retrying to bind to listen addresses.
+	Enabled bool
+
+	// Interval is the interval to wait between retries.  It must be
+	// non-negative.
+	Interval time.Duration
+
+	// Count is the maximum number of attempts excluding the first one.
+	Count uint
 }
