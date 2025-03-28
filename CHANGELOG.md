@@ -7,14 +7,24 @@ The format is based on [*Keep a Changelog*](https://keepachangelog.com/en/1.0.0/
 ## [Unreleased]
 
 <!--
-## [v0.0.2] - 2024-06-29 (APPROX.)
+## [v0.0.4] - 2025-04-30 (APPROX.)
 
-See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
+See also the [v0.0.2 GitHub milestone][ms-v0.0.4].
 
-[ms-v0.0.2]: https://github.com/AdguardTeam/AdGuardDNSClient/milestone/1?closed=1
+[ms-v0.0.4]: https://github.com/AdguardTeam/AdGuardDNSClient/milestone/4?closed=1
 
 NOTE: Add new changes BELOW THIS COMMENT.
 -->
+
+<!--
+NOTE: Add new changes ABOVE THIS COMMENT.
+-->
+
+## [v0.0.3] - 2025-03-31s
+
+See also the [v0.0.3 GitHub milestone][ms-v0.0.3].
+
+[ms-v0.0.3]: https://github.com/AdguardTeam/AdGuardDNSClient/milestone/3?closed=1
 
 ### Security
 
@@ -60,10 +70,6 @@ To rollback this change, remove the `dns.server.bind_retry` object and set the `
 
 [#11]: https://github.com/AdguardTeam/AdGuardDNSClient/issues/11
 
-<!--
-NOTE: Add new changes ABOVE THIS COMMENT.
--->
-
 ## [v0.0.2] - 2024-11-08
 
 See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
@@ -103,10 +109,11 @@ See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
 - Everything!
 
 <!--
-[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.3...HEAD
-[v0.0.2]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.2...v0.0.3
+[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.4...HEAD
+[v0.0.4]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.3...v0.0.4
 -->
 
-[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.2...HEAD
+[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.3...HEAD
+[v0.0.3]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.2...v0.0.3
 [v0.0.2]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.1...v0.0.2
 [v0.0.1]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.0...v0.0.1
