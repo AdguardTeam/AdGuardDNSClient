@@ -20,7 +20,7 @@ NOTE: Add new changes BELOW THIS COMMENT.
 NOTE: Add new changes ABOVE THIS COMMENT.
 -->
 
-## [v0.0.3] - 2025-03-31
+## [v0.0.3] - 2025-04-01
 
 See also the [v0.0.3 GitHub milestone][ms-v0.0.3].
 
