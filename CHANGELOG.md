@@ -16,6 +16,12 @@ See also the [v0.0.4 GitHub milestone][ms-v0.0.4].
 NOTE: Add new changes BELOW THIS COMMENT.
 -->
 
+### Security
+
+- Go version has been updated to prevent the possibility of exploiting the Go vulnerabilities fixed in [Go 1.24.2][go-1.24.2].
+
+[go-1.24.2]: https://groups.google.com/g/golang-announce/c/Y2uBTVKjBQk
+
 <!--
 NOTE: Add new changes ABOVE THIS COMMENT.
 -->
