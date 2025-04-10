@@ -106,6 +106,11 @@ func newProxyConfig(
 		netip.PrefixFrom(netip.IPv6Unspecified(), 0),
 	}
 
+	var pending proxy.PendingRequests = proxy.EmptyPendingRequests{}
+	if conf.PendingRequests.Enabled {
+		pending = proxy.NewDefaultPendingRequests()
+	}
+
 	return &proxy.Config{
 		Logger:                    conf.BaseLogger.With(slogutil.KeyPrefix, "dnsproxy"),
 		UpstreamMode:              proxy.UpstreamModeLoadBalance,
@@ -124,6 +129,7 @@ func newProxyConfig(
 			Interval: conf.BindRetry.Interval,
 			Count:    conf.BindRetry.Count,
 		},
+		PendingRequests: pending,
 	}, ups.clients(conf.Cache), nil
 }
 

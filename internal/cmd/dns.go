@@ -76,14 +76,15 @@ func (c *dnsConfig) toInternal(logger *slog.Logger) (conf *dnssvc.Config) {
 		BaseLogger: logger,
 		Logger:     logger.With(slogutil.KeyPrefix, "dnssvc"),
 		// TODO(e.burkov):  Consider making configurable.
-		PrivateSubnets: netutil.SubnetSetFunc(netutil.IsLocallyServed),
-		Cache:          c.Cache.toInternal(),
-		Bootstrap:      c.Bootstrap.toInternal(),
-		Upstreams:      c.Upstream.toInternal(),
-		Fallbacks:      c.Fallback.toInternal(),
-		ClientGetter:   dnssvc.DefaultClientGetter{},
-		ListenAddrs:    listenAddrs,
-		BindRetry:      c.Server.BindRetry.toInternal(),
+		PrivateSubnets:  netutil.SubnetSetFunc(netutil.IsLocallyServed),
+		Cache:           c.Cache.toInternal(),
+		Bootstrap:       c.Bootstrap.toInternal(),
+		Upstreams:       c.Upstream.toInternal(),
+		Fallbacks:       c.Fallback.toInternal(),
+		ClientGetter:    dnssvc.DefaultClientGetter{},
+		ListenAddrs:     listenAddrs,
+		BindRetry:       c.Server.BindRetry.toInternal(),
+		PendingRequests: c.Server.PendingRequests.toInternal(),
 	}
 }
 

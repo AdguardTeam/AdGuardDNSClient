@@ -3,8 +3,9 @@ module github.com/AdguardTeam/AdGuardDNSClient
 go 1.24.2
 
 require (
-	github.com/AdguardTeam/dnsproxy v0.75.2
-	github.com/AdguardTeam/golibs v0.32.6
+	// TODO(e.burkov):  !! upd to tag
+	github.com/AdguardTeam/dnsproxy v0.75.3-0.20250410144101-6deeaa8f7142
+	github.com/AdguardTeam/golibs v0.32.7
 	github.com/c2h5oh/datasize v0.0.0-20231215233829-aa82cc1e6500
 	github.com/google/renameio/v2 v2.0.0
 	github.com/kardianos/service v1.2.2

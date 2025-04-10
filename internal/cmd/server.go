@@ -14,6 +14,9 @@ type serverConfig struct {
 	// BindRetry configures retrying to bind to listen addresses.
 	BindRetry *bindRetryConfig `yaml:"bind_retry"`
 
+	// PendingRequests configures duplicate requests handling.
+	PendingRequests *pendingRequestsConfig `yaml:"pending_requests"`
+
 	// ListenAddresses is the addresses server listens for requests.
 	ListenAddresses []*ipPortConfig `yaml:"listen_addresses"`
 }
@@ -30,6 +33,7 @@ func (c *serverConfig) Validate() (err error) {
 	var errs []error
 	errs = validate.AppendSlice(errs, "listen_addresses", c.ListenAddresses)
 	errs = validate.Append(errs, "bind_retry", c.BindRetry)
+	errs = validate.Append(errs, "pending_requests", c.PendingRequests)
 
 	return errors.Join(errs...)
 }
@@ -67,5 +71,33 @@ func (c *bindRetryConfig) toInternal() (conf *dnssvc.BindRetryConfig) {
 		Enabled:  c.Enabled,
 		Interval: time.Duration(c.Interval),
 		Count:    c.Count,
+	}
+}
+
+// pendingRequestsConfig is the configuration for duplicate requests handling.
+type pendingRequestsConfig struct {
+	// Enabled, if true, prevents forwarding all simultaneous requests
+	// considered duplicates to the upstream, and uses the result of the first
+	// one for others.
+	Enabled bool `yaml:"enabled"`
+}
+
+// type check
+var _ validate.Interface = (*pendingRequestsConfig)(nil)
+
+// Validate implements the [validate.Interface] interface for
+// *pendingRequestsConfig.
+func (c *pendingRequestsConfig) Validate() (err error) {
+	if c == nil {
+		return errors.ErrNoValue
+	}
+
+	return nil
+}
+
+// toInternal converts the configuration to the internal representation.
+func (c *pendingRequestsConfig) toInternal() (conf *dnssvc.PendingRequestsConfig) {
+	return &dnssvc.PendingRequestsConfig{
+		Enabled: c.Enabled,
 	}
 }
