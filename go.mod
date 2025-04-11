@@ -4,7 +4,7 @@ go 1.24.2
 
 require (
 	// TODO(e.burkov):  !! upd to tag
-	github.com/AdguardTeam/dnsproxy v0.75.3-0.20250410144101-6deeaa8f7142
+	github.com/AdguardTeam/dnsproxy v0.75.3-0.20250411150541-96f975af80c7
 	github.com/AdguardTeam/golibs v0.32.7
 	github.com/c2h5oh/datasize v0.0.0-20231215233829-aa82cc1e6500
 	github.com/google/renameio/v2 v2.0.0

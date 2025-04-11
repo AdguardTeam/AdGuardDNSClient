@@ -1,0 +1,11 @@
+schema_version: 3
+dns:
+    server:
+        bind_retry:
+            enabled: true
+            count: 4
+            interval: 1s
+        listen_addresses:
+            - address: '192.0.2.1:53'
+        pending_requests:
+            enabled: true

@@ -11,7 +11,7 @@ const (
 	VersionInitial SchemaVersion = 1
 
 	// VersionLatest is the current version of the configuration structure.
-	VersionLatest SchemaVersion = 2
+	VersionLatest SchemaVersion = 3
 )
 
 // SchemaVersionKey is the key for the schema version in the YAML configuration

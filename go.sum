@@ -12,6 +12,8 @@ cloud.google.com/go/longrunning v0.6.6 h1:XJNDo5MUfMM05xK3ewpbSdmt7R2Zw+aQEMbdQR
 cloud.google.com/go/longrunning v0.6.6/go.mod h1:hyeGJUrPHcx0u2Uu1UFSoYZLn4lkMrccJig0t4FI7yw=
 github.com/AdguardTeam/dnsproxy v0.75.3-0.20250410144101-6deeaa8f7142 h1:QWBKWNpVWWIoCBRDpZM511Ct6FKvgb2z9hYwpxCoZXs=
 github.com/AdguardTeam/dnsproxy v0.75.3-0.20250410144101-6deeaa8f7142/go.mod h1:50OyTHao+uQzUJiXay08hgfvWQ3o2Q2WV99W8u8ypDE=
+github.com/AdguardTeam/dnsproxy v0.75.3-0.20250411150541-96f975af80c7 h1:zVY4c4g9qE6ClvNpcXzOfGVKtCfbnZT8QXdhVELr0SU=
+github.com/AdguardTeam/dnsproxy v0.75.3-0.20250411150541-96f975af80c7/go.mod h1:50OyTHao+uQzUJiXay08hgfvWQ3o2Q2WV99W8u8ypDE=
 github.com/AdguardTeam/golibs v0.32.7 h1:3dmGlAVgmvquCCwHsvEl58KKcRAK3z1UnjMnwSIeDH4=
 github.com/AdguardTeam/golibs v0.32.7/go.mod h1:bE8KV1zqTzgZjmjFyBJ9f9O5DEKO717r7e57j1HclJA=
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
