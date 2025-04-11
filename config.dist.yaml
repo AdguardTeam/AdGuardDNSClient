@@ -29,7 +29,7 @@ dns:
         # mitigate cache poisoning attacks.
         pending_requests:
             # If true, the server will only perform a single request for each
-            # unique question.
+            # unique question.  Default is true.
             enabled: true
     # DNS bootstrap settings.
     bootstrap:
