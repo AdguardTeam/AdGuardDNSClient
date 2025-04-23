@@ -1,0 +1,9 @@
+schema_version: 2
+dns:
+    server:
+        bind_retry:
+            enabled: true
+            count: 4
+            interval: 1s
+        listen_addresses:
+            - address: '192.0.2.1:53'

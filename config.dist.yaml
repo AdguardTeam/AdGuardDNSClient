@@ -25,6 +25,12 @@ dns:
         listen_addresses:
           - address: '127.0.0.1:53'
           - address: '192.168.1.1:53'
+        # Configuration for handling duplicate simultaneous requests used to
+        # mitigate cache poisoning attacks.
+        pending_requests:
+            # If true, the server will only perform a single request for each
+            # unique question.  Default is true.
+            enabled: true
     # DNS bootstrap settings.
     bootstrap:
         # List of bootstrap DNS servers to resolve DNS names of upstream
@@ -102,4 +108,4 @@ log:
     verbose: false
 # Schema version of this config file.  This is bumped each time the config file
 # format is changed.
-schema_version: 2
+schema_version: 3

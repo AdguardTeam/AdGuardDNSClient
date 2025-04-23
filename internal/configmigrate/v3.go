@@ -3,14 +3,12 @@ package configmigrate
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/AdguardTeam/golibs/errors"
-	"github.com/AdguardTeam/golibs/timeutil"
 )
 
-// migrateToV2 migrates the configuration from version 1 to version 2.  It adds
-// the bind_retry object to the dns.server section:
+// migrateToV3 migrates the configuration from version 2 to version 3.  It adds
+// the pending_requests object to the dns.server section:
 //
 // # Before:
 //
@@ -19,22 +17,20 @@ import (
 //	        # …
 //	    # …
 //	# …
-//	schema_version: 1
+//	schema_version: 2
 //
 // # After:
 //
 //	dns:
 //	    server:
-//	        bind_retry:
+//	        pending_requests:
 //	            enabled: true
-//	            interval: 1s
-//	            count: 4
 //	        # …
 //	    # …
 //	# …
-//	schema_version: 2
-func (m *Migrator) migrateTo2(ctx context.Context, conf yObj) (err error) {
-	const target SchemaVersion = 2
+//	schema_version: 3
+func (m *Migrator) migrateTo3(ctx context.Context, conf yObj) (err error) {
+	const target SchemaVersion = 3
 
 	dnsVal, err := fieldVal[yObj](conf, "dns")
 	if err != nil {
@@ -48,7 +44,7 @@ func (m *Migrator) migrateTo2(ctx context.Context, conf yObj) (err error) {
 		return err
 	}
 
-	const key = "bind_retry"
+	const key = "pending_requests"
 
 	_, ok := serverVal[key]
 	if ok {
@@ -57,9 +53,7 @@ func (m *Migrator) migrateTo2(ctx context.Context, conf yObj) (err error) {
 	}
 
 	serverVal[key] = yObj{
-		"enabled":  true,
-		"interval": timeutil.Duration(1 * time.Second),
-		"count":    4,
+		"enabled": true,
 	}
 
 	conf[SchemaVersionKey] = target

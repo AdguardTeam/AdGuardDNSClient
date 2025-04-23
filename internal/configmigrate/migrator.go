@@ -121,6 +121,7 @@ func (m *Migrator) migrate(ctx context.Context, conf yObj, curr, targ SchemaVers
 		// There is obviously no migration to the initial version.
 		0: nil,
 		1: m.migrateTo2,
+		2: m.migrateTo3,
 	}
 
 	for i, migrate := range migrations[curr:targ] {

@@ -124,6 +124,9 @@ func newProxyConfig(
 			Interval: conf.BindRetry.Interval,
 			Count:    conf.BindRetry.Count,
 		},
+		PendingRequests: &proxy.PendingRequestsConfig{
+			Enabled: conf.PendingRequests.Enabled,
+		},
 	}, ups.clients(conf.Cache), nil
 }
 

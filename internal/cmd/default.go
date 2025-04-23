@@ -49,6 +49,10 @@ const (
 	// defaultBindRetryCount is the default maximum number of attempts to bind a
 	// listen address after the first one.
 	defaultBindRetryCount uint = 4
+
+	// defaultPendingRequestsEnabled is the default value for the pending
+	// requests feature to be enabled.
+	defaultPendingRequestsEnabled = true
 )
 
 // Values for the default cache configuration.
@@ -156,11 +160,14 @@ func newDefaultServerConfig() (c *serverConfig, err error) {
 	}
 
 	return &serverConfig{
-		ListenAddresses: localAddrs,
 		BindRetry: &bindRetryConfig{
 			Enabled:  defaultBindRetryEnabled,
 			Interval: timeutil.Duration(defaultBindRetryIvl),
 			Count:    defaultBindRetryCount,
+		},
+		ListenAddresses: localAddrs,
+		PendingRequests: &pendingRequestsConfig{
+			Enabled: defaultPendingRequestsEnabled,
 		},
 	}, nil
 }

@@ -44,6 +44,10 @@ type Config struct {
 	// It must not be nil.
 	BindRetry *BindRetryConfig
 
+	// PendingRequests is the configuration for duplicate requests handling.
+	// It must not be nil.
+	PendingRequests *PendingRequestsConfig
+
 	// ListenAddrs is the list of served addresses.  It must contain at least
 	// one entry.  It must not be empty and must contain only valid addresses.
 	ListenAddrs []netip.AddrPort
@@ -60,4 +64,11 @@ type BindRetryConfig struct {
 
 	// Count is the maximum number of attempts excluding the first one.
 	Count uint
+}
+
+// PendingRequestsConfig configures duplicate requests handling.
+type PendingRequestsConfig struct {
+	// Enabled determines whether duplicate simultaneous requests should be
+	// tracked and use the result of the first one.
+	Enabled bool
 }

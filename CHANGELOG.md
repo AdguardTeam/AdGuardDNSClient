@@ -18,9 +18,44 @@ NOTE: Add new changes BELOW THIS COMMENT.
 
 ### Security
 
+- Any simultaneous requests that are considered duplicates will now only result in a single request to upstreams, reducing the chance of a cache poisoning attack succeeding.  This is controlled by the new configuration object `dns.server.pending_requests`, which has a single `enabled` property, set to `true` by default.
+
+    **NOTE:** We thank [Xiang Li][mr-xiang-li] for reporting this security issue.  It's strongly recommended to leave it enabled, otherwise AdGuardDNS Client will be vulnerable to untrusted clients.
+
 - Go version has been updated to prevent the possibility of exploiting the Go vulnerabilities fixed in [Go 1.24.2][go-1.24.2].
 
+### Changed
+
+#### Configuration changes
+
+In this release, the schema version has changed from 2 to 3.
+
+- The new object `pending_requests` has been added to the `dns.server` object.
+
+    ```yaml
+    # BEFORE:
+    dns:
+        server:
+            # …
+        # …
+    # …
+    schema_version: 2
+
+    # AFTER:
+    dns:
+        server:
+            pending_requests:
+                enabled: true
+            # …
+        # …
+    # …
+    schema_version: 3
+    ```
+
+To rollback this change, remove the `dns.server.pending_requests` object and set the `schema_version` to `2`.
+
 [go-1.24.2]: https://groups.google.com/g/golang-announce/c/Y2uBTVKjBQk
+[mr-xiang-li]: https://lixiang521.com/
 
 <!--
 NOTE: Add new changes ABOVE THIS COMMENT.

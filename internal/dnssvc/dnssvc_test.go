@@ -180,6 +180,8 @@ func TestDNSService(t *testing.T) {
 
 	// Create and start the service.
 
+	// TODO(e.burkov):  Add a helper constructor with default values as the test
+	// suite grows.
 	svc, err := dnssvc.New(&dnssvc.Config{
 		BaseLogger:     slogutil.NewDiscardLogger(),
 		Logger:         slogutil.NewDiscardLogger(),
@@ -226,6 +228,9 @@ func TestDNSService(t *testing.T) {
 		ClientGetter: cliGetter,
 		BindRetry: &dnssvc.BindRetryConfig{
 			Enabled: false,
+		},
+		PendingRequests: &dnssvc.PendingRequestsConfig{
+			Enabled: true,
 		},
 		ListenAddrs: []netip.AddrPort{
 			netip.AddrPortFrom(netutil.IPv4Localhost(), 0),
