@@ -7,14 +7,21 @@ The format is based on [*Keep a Changelog*](https://keepachangelog.com/en/1.0.0/
 ## [Unreleased]
 
 <!--
-## [v0.0.4] - 2025-04-30 (APPROX.)
+## [v0.0.5] - 2025-05-30 (APPROX.)
 
-See also the [v0.0.4 GitHub milestone][ms-v0.0.4].
+See also the [v0.0.5 GitHub milestone][ms-v0.0.5].
 
-[ms-v0.0.4]: https://github.com/AdguardTeam/AdGuardDNSClient/milestone/4?closed=1
+[ms-v0.0.5]: https://github.com/AdguardTeam/AdGuardDNSClient/milestone/5?closed=1
 
 NOTE: Add new changes BELOW THIS COMMENT.
 -->
+<!--
+NOTE: Add new changes ABOVE THIS COMMENT.
+-->
+
+## [v0.0.4] - 2025-04-28
+
+See also the [v0.0.4 GitHub milestone][ms-v0.0.4].
 
 ### Security
 
@@ -54,12 +61,9 @@ In this release, the schema version has changed from 2 to 3.
 
 To rollback this change, remove the `dns.server.pending_requests` object and set the `schema_version` to `2`.
 
-[go-1.24.2]: https://groups.google.com/g/golang-announce/c/Y2uBTVKjBQk
+[go-1.24.2]:   https://groups.google.com/g/golang-announce/c/Y2uBTVKjBQk
 [mr-xiang-li]: https://lixiang521.com/
-
-<!--
-NOTE: Add new changes ABOVE THIS COMMENT.
--->
+[ms-v0.0.4]:   https://github.com/AdguardTeam/AdGuardDNSClient/milestone/4?closed=1
 
 ## [v0.0.3] - 2025-04-01
 
@@ -148,11 +152,12 @@ See also the [v0.0.2 GitHub milestone][ms-v0.0.2].
 - Everything!
 
 <!--
-[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.4...HEAD
-[v0.0.4]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.3...v0.0.4
+[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.5...HEAD
+[v0.0.5]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.4...v0.0.5
 -->
 
-[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.3...HEAD
+[Unreleased]: https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.4...HEAD
+[v0.0.4]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.3...v0.0.4
 [v0.0.3]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.2...v0.0.3
 [v0.0.2]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.1...v0.0.2
 [v0.0.1]:     https://github.com/AdguardTeam/AdGuardDNSClient/compare/v0.0.0...v0.0.1
