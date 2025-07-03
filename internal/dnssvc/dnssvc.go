@@ -40,7 +40,7 @@ type DNSService struct {
 	bootstrapUpstreams []io.Closer
 }
 
-// New creates a new DNSService.  conf and l must not be nil.
+// New creates a new DNSService.  conf must not be nil.
 func New(conf *Config) (svc *DNSService, err error) {
 	boot, bootUps, err := newResolvers(conf.Bootstrap, conf.Logger)
 	if err != nil {
