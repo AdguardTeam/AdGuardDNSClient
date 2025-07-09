@@ -13,6 +13,26 @@ import (
 	"github.com/AdguardTeam/golibs/syncutil"
 )
 
+const (
+	// KeyUpstreamType is the log attribute for the upstream types.  See the
+	// UpstreamType* constants below.
+	KeyUpstreamType = "upstream_type"
+
+	// KeyUpstreamGroup is the log attribute for the upstream groups.
+	KeyUpstreamGroup = "upstream_group"
+)
+
+const (
+	// UpstreamTypeBootstrap is the log attribute value for bootstrap upstreams.
+	UpstreamTypeBootstrap = "bootstrap"
+
+	// UpstreamTypeFallback is the log attribute value for fallback upstreams.
+	UpstreamTypeFallback = "fallback"
+
+	// UpstreamTypeMain is the log attribute value for main upstreams.
+	UpstreamTypeMain = "main"
+)
+
 // initLineLenEst is the estimation used to set the initial sizes of log-line
 // buffers.
 const initLineLenEst = 256

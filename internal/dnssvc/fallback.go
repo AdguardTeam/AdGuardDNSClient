@@ -2,8 +2,10 @@ package dnssvc
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog"
 	"github.com/AdguardTeam/dnsproxy/proxy"
 	"github.com/AdguardTeam/dnsproxy/upstream"
 )
@@ -19,12 +21,14 @@ type FallbackConfig struct {
 }
 
 // newFallbacks creates a new fallback upstream configuration from conf using
-// boot.
+// boot.  conf and l must not be nil.
 func newFallbacks(
 	conf *FallbackConfig,
+	l *slog.Logger,
 	boot upstream.Resolver,
 ) (fallbacks *proxy.UpstreamConfig, err error) {
 	opts := &upstream.Options{
+		Logger:    l.With(agdcslog.KeyUpstreamType, agdcslog.UpstreamTypeFallback),
 		Timeout:   conf.Timeout,
 		Bootstrap: boot,
 	}

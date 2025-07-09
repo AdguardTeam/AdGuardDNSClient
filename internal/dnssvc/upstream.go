@@ -2,11 +2,13 @@ package dnssvc
 
 import (
 	"fmt"
+	"log/slog"
 	"net/netip"
 	"strings"
 	"time"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdc"
+	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog"
 	"github.com/AdguardTeam/dnsproxy/proxy"
 	"github.com/AdguardTeam/dnsproxy/upstream"
 	"github.com/AdguardTeam/golibs/errors"
@@ -28,17 +30,14 @@ type UpstreamConfig struct {
 
 // newUpstreams builds the general upstream configuration, client-specific ones,
 // and the private one, if any, from conf.  boot bootstraps the upstreams'
-// domain names.
+// domain names.  conf and l must not be nil.
 func newUpstreams(
 	conf *UpstreamConfig,
+	l *slog.Logger,
 	boot upstream.Resolver,
 ) (ups upstreamConfigs, private *proxy.UpstreamConfig, err error) {
 	defer func() { err = errors.Annotate(err, "creating upstreams: %w") }()
 
-	opts := &upstream.Options{
-		Timeout:   conf.Timeout,
-		Bootstrap: boot,
-	}
 	ups = upstreamConfigs{
 		// Init default group.
 		netip.Prefix{}: &proxy.UpstreamConfig{},
@@ -47,6 +46,15 @@ func newUpstreams(
 
 	var errs []error
 	for _, g := range conf.Groups {
+		opts := &upstream.Options{
+			Logger: l.With(
+				agdcslog.KeyUpstreamType, agdcslog.UpstreamTypeMain,
+				agdcslog.KeyUpstreamGroup, g.Name,
+			),
+			Timeout:   conf.Timeout,
+			Bootstrap: boot,
+		}
+
 		var u upstream.Upstream
 		u, err = newUpstreamOrCached(g.Address, upstreams, opts)
 		if err != nil {

@@ -3,9 +3,11 @@ package dnssvc
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"net/netip"
 	"time"
 
+	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog"
 	"github.com/AdguardTeam/dnsproxy/upstream"
 	"github.com/AdguardTeam/golibs/errors"
 )
@@ -20,11 +22,15 @@ type BootstrapConfig struct {
 }
 
 // newResolvers creates a new bootstrap resolver and a list of upstreams to
-// close on shutdown.
-func newResolvers(conf *BootstrapConfig) (boot upstream.Resolver, closers []io.Closer, err error) {
+// close on shutdown.  conf and l must not be nil.
+func newResolvers(
+	conf *BootstrapConfig,
+	l *slog.Logger,
+) (boot upstream.Resolver, closers []io.Closer, err error) {
 	defer func() { err = errors.Annotate(err, "creating bootstraps: %w") }()
 
 	opts := &upstream.Options{
+		Logger:  l.With(agdcslog.KeyUpstreamType, agdcslog.UpstreamTypeBootstrap),
 		Timeout: conf.Timeout,
 	}
 

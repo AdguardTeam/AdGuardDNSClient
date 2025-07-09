@@ -42,7 +42,7 @@ type DNSService struct {
 
 // New creates a new DNSService.  conf must not be nil.
 func New(conf *Config) (svc *DNSService, err error) {
-	boot, bootUps, err := newResolvers(conf.Bootstrap)
+	boot, bootUps, err := newResolvers(conf.Bootstrap, conf.Logger)
 	if err != nil {
 		// Don't wrap the error, because it's informative enough as is.
 		return nil, err
@@ -82,13 +82,13 @@ func newProxyConfig(
 ) (prxConf *proxy.Config, clients []*client, err error) {
 	defer func() { err = errors.Annotate(err, "creating proxy configuration: %w") }()
 
-	ups, private, err := newUpstreams(conf.Upstreams, boot)
+	ups, private, err := newUpstreams(conf.Upstreams, conf.Logger, boot)
 	if err != nil {
 		// Don't wrap the error, because it's informative enough as is.
 		return nil, nil, err
 	}
 
-	falls, err := newFallbacks(conf.Fallbacks, boot)
+	falls, err := newFallbacks(conf.Fallbacks, conf.Logger, boot)
 	if err != nil {
 		// Don't wrap the error, because it's informative enough as is.
 		return nil, nil, err
