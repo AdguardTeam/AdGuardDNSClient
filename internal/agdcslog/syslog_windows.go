@@ -3,6 +3,7 @@
 package agdcslog
 
 import (
+	"context"
 	"strings"
 
 	"golang.org/x/sys/windows"
@@ -34,7 +35,7 @@ type systemLogger struct {
 // Note that the eventlog src is the same as the service name.  Otherwise, we
 // will get "the description for event id cannot be found" warning in every log
 // record.
-func newSystemLogger(src string) (l SystemLogger, err error) {
+func newSystemLogger(_ context.Context, src string) (l SystemLogger, err error) {
 	const events = eventlog.Info | eventlog.Warning | eventlog.Error
 
 	// Continue if we receive "registry key already exists" or if we get

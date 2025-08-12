@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"cmp"
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -73,6 +74,7 @@ func (c *logConfig) Validate() (err error) {
 // newEnvLogger returns a new default logger using the information from the
 // environment, cmdline arguments, and defaults.
 func newEnvLogger(
+	ctx context.Context,
 	opts *options,
 	envs *logEnvs,
 ) (l *slog.Logger, logFile *os.File, err error) {
@@ -84,12 +86,13 @@ func newEnvLogger(
 		level = slog.LevelDebug
 	}
 
-	return newLogger(output, format, envs.timestampSet && envs.timestamp, level)
+	return newLogger(ctx, output, format, envs.timestampSet && envs.timestamp, level)
 }
 
 // newLogger creates a new logger based on the parameters.  l is never nil: if
 // the file or the system log cannot be opened, l writes to [os.Stderr].
 func newLogger(
+	ctx context.Context,
 	outputStr string,
 	f slogutil.Format,
 	addTimestamp bool,
@@ -97,7 +100,7 @@ func newLogger(
 ) (l *slog.Logger, logFile *os.File, err error) {
 	var output *os.File
 	if outputStr == outputSyslog {
-		l, err = newSystemLogger(level)
+		l, err = newSystemLogger(ctx, level)
 		if err == nil {
 			return l, nil, nil
 		}
@@ -148,8 +151,8 @@ func outputFromStr(s string) (output *os.File, needsClose bool, err error) {
 
 // newSystemLogger returns a new logger that writes to system log with the
 // given verbosity.
-func newSystemLogger(level slog.Level) (l *slog.Logger, err error) {
-	sl, err := agdcslog.NewSystemLogger(serviceName)
+func newSystemLogger(ctx context.Context, level slog.Level) (l *slog.Logger, err error) {
+	sl, err := agdcslog.NewSystemLogger(ctx, serviceName)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +169,7 @@ func newSystemLogger(level slog.Level) (l *slog.Logger, err error) {
 //
 // TODO(a.garipov):  Refactor.
 func newConfigLogger(
+	ctx context.Context,
 	envLogger *slog.Logger,
 	envLogFile *os.File,
 	opts *options,
@@ -204,7 +208,7 @@ func newConfigLogger(
 		}), envLogFile, nil
 	}
 
-	l, logFile, err = newLogger(outputStr, format, addTimestamp, level)
+	l, logFile, err = newLogger(ctx, outputStr, format, addTimestamp, level)
 	if err != nil {
 		errs = append(errs, fmt.Errorf("creating conf log: %w", err))
 	}

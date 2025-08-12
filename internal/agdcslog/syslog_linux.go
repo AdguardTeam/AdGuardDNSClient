@@ -3,6 +3,7 @@
 package agdcslog
 
 import (
+	"context"
 	"log/syslog"
 )
 
@@ -12,7 +13,7 @@ type systemLogger struct {
 }
 
 // newSystemLogger returns a Linux-specific system logger.
-func newSystemLogger(tag string) (l SystemLogger, err error) {
+func newSystemLogger(_ context.Context, tag string) (l SystemLogger, err error) {
 	const priority = syslog.LOG_NOTICE | syslog.LOG_USER
 
 	w, err := syslog.New(priority, tag)

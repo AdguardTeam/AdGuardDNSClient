@@ -1,10 +1,15 @@
 package agdcslog
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 // SystemLogger is a platform-specific system logger.
 //
 // TODO(e.burkov):  Consider moving to golibs.
+//
+// TODO(s.chzhen):  Add platform-specific tests.
 type SystemLogger interface {
 	// Debug logs a message at debug level.
 	Debug(msg string) (err error)
@@ -24,6 +29,6 @@ type SystemLogger interface {
 
 // NewSystemLogger returns a platform-specific system logger.  name is the
 // name of service.
-func NewSystemLogger(name string) (l SystemLogger, err error) {
-	return newSystemLogger(name)
+func NewSystemLogger(ctx context.Context, name string) (l SystemLogger, err error) {
+	return newSystemLogger(ctx, name)
 }

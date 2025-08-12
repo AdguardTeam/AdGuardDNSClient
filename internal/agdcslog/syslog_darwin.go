@@ -4,14 +4,15 @@ package agdcslog
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
-	"os/exec"
 	"strings"
 	"sync"
 
 	"github.com/AdguardTeam/golibs/errors"
 	"github.com/AdguardTeam/golibs/ioutil"
+	"github.com/AdguardTeam/golibs/osutil/executil"
 	"github.com/c2h5oh/datasize"
 )
 
@@ -48,7 +49,7 @@ type systemLogger struct {
 }
 
 // newSystemLogger returns a macOS-specific system logger.
-func newSystemLogger(tag string) (l SystemLogger, err error) {
+func newSystemLogger(ctx context.Context, tag string) (l SystemLogger, err error) {
 	sysl := &systemLogger{
 		tag: tag,
 	}
@@ -59,22 +60,24 @@ func newSystemLogger(tag string) (l SystemLogger, err error) {
 	// first argument and an error as the second.
 	const msgFmt = "creating %s logger process: %w"
 
-	sysl.debug, err = newProcess(sevDebug)
+	cmdCons := executil.SystemCommandConstructor{}
+
+	sysl.debug, err = newProcess(ctx, cmdCons, sevDebug)
 	if err != nil {
 		errs = append(errs, fmt.Errorf(msgFmt, sevDebug, err))
 	}
 
-	sysl.info, err = newProcess(sevInfo)
+	sysl.info, err = newProcess(ctx, cmdCons, sevInfo)
 	if err != nil {
 		errs = append(errs, fmt.Errorf(msgFmt, sevInfo, err))
 	}
 
-	sysl.warning, err = newProcess(sevWarning)
+	sysl.warning, err = newProcess(ctx, cmdCons, sevWarning)
 	if err != nil {
 		errs = append(errs, fmt.Errorf(msgFmt, sevWarning, err))
 	}
 
-	sysl.error, err = newProcess(sevError)
+	sysl.error, err = newProcess(ctx, cmdCons, sevError)
 	if err != nil {
 		errs = append(errs, fmt.Errorf(msgFmt, sevError, err))
 	}
@@ -147,7 +150,7 @@ type process struct {
 	mu *sync.Mutex
 
 	// cmd is the logger command of a particular severity.
-	cmd *exec.Cmd
+	cmd executil.Command
 
 	// stdin is the pipe to stdin of cmd.
 	stdin io.WriteCloser
@@ -164,7 +167,11 @@ type process struct {
 }
 
 // newProcess creates a new process with a particular severity.
-func newProcess(sev severity) (p *process, err error) {
+func newProcess(
+	ctx context.Context,
+	cmdCons executil.CommandConstructor,
+	sev severity,
+) (p *process, err error) {
 	const (
 		binPath        = "/usr/bin/logger"
 		optionPriority = "-p"
@@ -173,34 +180,34 @@ func newProcess(sev severity) (p *process, err error) {
 
 	priorityVal := facilityVal + "." + sev
 
-	// #nosec G204 -- Trust the variable to be a valid syslog priority since it
-	// always constructed from the predefined constants.
-	cmd := exec.Command(binPath, optionPriority, priorityVal)
-	if cmd.Err != nil {
-		return nil, fmt.Errorf("creating command: %w", cmd.Err)
-	}
-
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, fmt.Errorf("creating stdin pipe: %w", err)
-	}
-
-	limit := uint(defaultOutLimit.Bytes())
+	limit := uint64(defaultOutLimit.Bytes())
 
 	stdout := &bytes.Buffer{}
 	stderr := &bytes.Buffer{}
 
-	cmd.Stdout = ioutil.NewTruncatedWriter(stdout, limit)
-	cmd.Stderr = ioutil.NewTruncatedWriter(stderr, limit)
+	stdinReader, stdinWriter := io.Pipe()
 
-	if err = cmd.Start(); err != nil {
+	conf := &executil.CommandConfig{
+		Stderr: ioutil.NewTruncatedWriter(stderr, limit),
+		Stdin:  stdinReader,
+		Stdout: ioutil.NewTruncatedWriter(stdout, limit),
+		Path:   binPath,
+		Args:   []string{optionPriority, priorityVal},
+	}
+
+	cmd, err := cmdCons.New(ctx, conf)
+	if err != nil {
+		return nil, fmt.Errorf("creating command: %w", err)
+	}
+
+	if err = cmd.Start(ctx); err != nil {
 		return nil, fmt.Errorf("starting command: %w", err)
 	}
 
 	return &process{
 		mu:       &sync.Mutex{},
 		cmd:      cmd,
-		stdin:    stdin,
+		stdin:    stdinWriter,
 		stdout:   stdout,
 		stderr:   stderr,
 		severity: sev,
@@ -235,7 +242,8 @@ func (p *process) close() (err error) {
 		errs = append(errs, err)
 	}
 
-	if err = p.cmd.Wait(); err != nil {
+	// TODO(s.chzhen):  Pass context.
+	if err = p.cmd.Wait(context.TODO()); err != nil {
 		err = fmt.Errorf("waiting: %w", err)
 		errs = append(errs, err)
 	}
