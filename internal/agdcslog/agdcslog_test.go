@@ -3,7 +3,6 @@ package agdcslog_test
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/AdGuardDNSClient/internal/agdcslog"
+	"github.com/AdguardTeam/golibs/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,19 +31,19 @@ type testLogger struct {
 func newTestLogger() (l *testLogger) {
 	return &testLogger{
 		onInfo: func(msg string) (_ error) {
-			panic(fmt.Errorf("unexpected call to Info(%q)", msg))
+			panic(testutil.UnexpectedCall(msg))
 		},
 		onWarning: func(msg string) (_ error) {
-			panic(fmt.Errorf("unexpected call to Warning(%q)", msg))
+			panic(testutil.UnexpectedCall(msg))
 		},
 		onError: func(msg string) (_ error) {
-			panic(fmt.Errorf("unexpected call to Error(%q)", msg))
+			panic(testutil.UnexpectedCall(msg))
 		},
 		onDebug: func(msg string) (_ error) {
-			panic(fmt.Errorf("unexpected call to Debug(%q)", msg))
+			panic(testutil.UnexpectedCall(msg))
 		},
 		onClose: func() (_ error) {
-			panic(fmt.Errorf("unexpected call to Close"))
+			panic(testutil.UnexpectedCall())
 		},
 	}
 }
