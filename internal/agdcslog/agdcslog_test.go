@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -14,6 +16,43 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// testTimeout is the common timeout for tests.
+const testTimeout = 1 * time.Second
+
+const testServiceName = "AdGuardDNSClientTest"
+
+func requireIntegration(t *testing.T) {
+	t.Helper()
+
+	const envName = "TEST_AGDCSLOG"
+
+	val := os.Getenv(envName)
+	if val == "" {
+		t.Skip()
+	}
+
+	ok, err := strconv.ParseBool(val)
+	if err != nil || !ok {
+		t.Skip()
+	}
+}
+
+func integrationSystemLogger(t *testing.T) (l *slog.Logger) {
+	t.Helper()
+
+	ctx := testutil.ContextWithTimeout(t, testTimeout)
+	sl, err := agdcslog.NewSystemLogger(ctx, testServiceName)
+	require.NoError(t, err)
+
+	testutil.CleanupAndRequireSuccess(t, sl.Close)
+
+	h := agdcslog.NewSyslogHandler(sl, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})
+
+	return slog.New(h)
+}
 
 // testLogger is a mock implementation of [agdcslog.SystemLogger] interface for
 // tests.
