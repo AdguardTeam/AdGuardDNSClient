@@ -9,7 +9,7 @@ import (
 //
 // TODO(e.burkov):  Consider moving to golibs.
 //
-// TODO(s.chzhen):  Add platform-specific tests.
+// TODO(s.chzhen):  Add platform-specific integration tests.
 type SystemLogger interface {
 	// Debug logs a message at debug level.
 	Debug(msg string) (err error)

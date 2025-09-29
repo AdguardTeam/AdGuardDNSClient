@@ -36,10 +36,10 @@ const defaultOutLimit datasize.ByteSize = 1 * datasize.KB
 //
 // TODO(e.burkov):  Get rid of it when golang/go#59229 is resolved.
 type systemLogger struct {
-	debug   *process
-	info    *process
-	warning *process
-	error   *process
+	debug   *osProcess
+	info    *osProcess
+	warning *osProcess
+	error   *osProcess
 
 	// tag is the prefix for all log messages.
 	//
@@ -50,6 +50,25 @@ type systemLogger struct {
 
 // newSystemLogger returns a macOS-specific system logger.
 func newSystemLogger(ctx context.Context, tag string) (l SystemLogger, err error) {
+	cmdCons := executil.SystemCommandConstructor{}
+	sysl, err := newSystemLoggerWithCommandConstructor(ctx, cmdCons, tag)
+	if err != nil {
+		// Don't wrap the error because it's informative enough as is.
+		return nil, err
+	}
+
+	return sysl, nil
+}
+
+// newSystemLoggerWithCommandConstructor returns a macOS-specific system logger
+// using the provided command constructor.
+//
+// TODO(s.chzhen):  Use this as the actual constructor.
+func newSystemLoggerWithCommandConstructor(
+	ctx context.Context,
+	cmdCons executil.CommandConstructor,
+	tag string,
+) (l SystemLogger, err error) {
 	sysl := &systemLogger{
 		tag: tag,
 	}
@@ -60,24 +79,22 @@ func newSystemLogger(ctx context.Context, tag string) (l SystemLogger, err error
 	// first argument and an error as the second.
 	const msgFmt = "creating %s logger process: %w"
 
-	cmdCons := executil.SystemCommandConstructor{}
-
-	sysl.debug, err = newProcess(ctx, cmdCons, sevDebug)
+	sysl.debug, err = newOSProcess(ctx, cmdCons, sevDebug)
 	if err != nil {
 		errs = append(errs, fmt.Errorf(msgFmt, sevDebug, err))
 	}
 
-	sysl.info, err = newProcess(ctx, cmdCons, sevInfo)
+	sysl.info, err = newOSProcess(ctx, cmdCons, sevInfo)
 	if err != nil {
 		errs = append(errs, fmt.Errorf(msgFmt, sevInfo, err))
 	}
 
-	sysl.warning, err = newProcess(ctx, cmdCons, sevWarning)
+	sysl.warning, err = newOSProcess(ctx, cmdCons, sevWarning)
 	if err != nil {
 		errs = append(errs, fmt.Errorf(msgFmt, sevWarning, err))
 	}
 
-	sysl.error, err = newProcess(ctx, cmdCons, sevError)
+	sysl.error, err = newOSProcess(ctx, cmdCons, sevError)
 	if err != nil {
 		errs = append(errs, fmt.Errorf(msgFmt, sevError, err))
 	}
@@ -121,7 +138,7 @@ func (l *systemLogger) Close() (err error) {
 	defer func() { err = errors.Annotate(err, "closing logger processes: %w") }()
 
 	var errs []error
-	procs := []*process{
+	procs := []*osProcess{
 		l.debug,
 		l.info,
 		l.warning,
@@ -143,8 +160,8 @@ func (l *systemLogger) Close() (err error) {
 	return errors.Join(errs...)
 }
 
-// process is an instance of the logger process with a particular severity.
-type process struct {
+// osProcess is an instance of the logger process with a particular severity.
+type osProcess struct {
 	// mu synchronizes writes to stdin between each other and with the process
 	// closing.
 	mu *sync.Mutex
@@ -166,12 +183,12 @@ type process struct {
 	severity severity
 }
 
-// newProcess creates a new process with a particular severity.
-func newProcess(
+// newOSProcess creates a new process with a particular severity.
+func newOSProcess(
 	ctx context.Context,
 	cmdCons executil.CommandConstructor,
 	sev severity,
-) (p *process, err error) {
+) (p *osProcess, err error) {
 	const (
 		binPath        = "/usr/bin/logger"
 		optionPriority = "-p"
@@ -204,7 +221,7 @@ func newProcess(
 		return nil, fmt.Errorf("starting command: %w", err)
 	}
 
-	return &process{
+	return &osProcess{
 		mu:       &sync.Mutex{},
 		cmd:      cmd,
 		stdin:    stdinWriter,
@@ -215,7 +232,7 @@ func newProcess(
 }
 
 // write writes the message to the logger.
-func (p *process) write(tag, msg string) (err error) {
+func (p *osProcess) write(tag, msg string) (err error) {
 	defer func() { err = errors.Annotate(err, "writing %s message", p.severity) }()
 
 	msg = strings.TrimSuffix(msg, "\n")
@@ -228,8 +245,8 @@ func (p *process) write(tag, msg string) (err error) {
 	return err
 }
 
-// close closes the process' pipes and waits for the command to exit.
-func (p *process) close() (err error) {
+// close closes the process's pipes and waits for the command to exit.
+func (p *osProcess) close() (err error) {
 	defer func() { err = errors.Annotate(err, "closing %s logger: %w", p.severity) }()
 
 	var errs []error

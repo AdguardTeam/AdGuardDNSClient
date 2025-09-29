@@ -24,10 +24,26 @@ const (
 	debugEventID   = 4
 )
 
+// eventlogWriter abstracts the Windows event log.
+type eventlogWriter interface {
+	// Info logs at the info level.  The same method is also used for debug
+	// messages with a different event ID.
+	Info(id uint32, msg string) (err error)
+
+	// Warning logs a message at the warning level.
+	Warning(id uint32, msg string) (err error)
+
+	// Error logs a message at the error level.
+	Error(id uint32, msg string) (err error)
+
+	// Close closes the system log writer.
+	Close() (err error)
+}
+
 // systemLogger is the implementation of the [SystemLogger] interface for
 // Windows.
 type systemLogger struct {
-	writer *eventlog.Log
+	writer eventlogWriter
 }
 
 // newSystemLogger returns a Windows-specific system logger.
