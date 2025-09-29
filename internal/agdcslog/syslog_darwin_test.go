@@ -3,14 +3,30 @@
 package agdcslog_test
 
 import (
-	"testing"
+	"bytes"
+	"context"
+	"fmt"
+	"strings"
 
-	"github.com/stretchr/testify/require"
+	"github.com/AdguardTeam/golibs/osutil/executil"
 )
 
-func TestSystemLogger_integration(t *testing.T) {
-	requireIntegration(t)
+// cmdLogReader is the name of the system log reader.
+const cmdLogReader = "log"
 
-	l := integrationSystemLogger(t)
-	require.NotNil(t, l)
+// findInLog searches the macOS unified log for the message.
+func findInLog(ctx context.Context, since, msg string) (ok bool, err error) {
+	var stdOut, stdErr bytes.Buffer
+
+	err = executil.Run(ctx, executil.SystemCommandConstructor{}, &executil.CommandConfig{
+		Path:   cmdLogReader,
+		Args:   []string{"show", "--style", "syslog", "--start", since, "--debug"},
+		Stdout: &stdOut,
+		Stderr: &stdErr,
+	})
+	if err != nil {
+		return false, fmt.Errorf("log search failed: %w; stderr=%q", err, &stdErr)
+	}
+
+	return strings.Contains(stdOut.String(), msg), nil
 }

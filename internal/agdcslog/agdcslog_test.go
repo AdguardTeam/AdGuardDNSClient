@@ -5,6 +5,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"os/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -22,22 +23,35 @@ const testTimeout = 1 * time.Second
 
 const testServiceName = "AdGuardDNSClientTest"
 
-func requireIntegration(t *testing.T) {
-	t.Helper()
+// requireIntegration skips the test unless TEST_AGDCSLOG parses to true.
+func requireIntegration(tb testing.TB) {
+	tb.Helper()
 
 	const envName = "TEST_AGDCSLOG"
 
 	val := os.Getenv(envName)
 	if val == "" {
-		t.Skip()
+		tb.Skip("skipping: env is not set")
 	}
 
 	ok, err := strconv.ParseBool(val)
 	if err != nil || !ok {
-		t.Skip()
+		tb.Skip("skipping: unexpected value")
 	}
 }
 
+// requireLogReader skips the test unless there is a system log reader.
+func requireLogReader(tb testing.TB) {
+	tb.Helper()
+
+	_, err := exec.LookPath(cmdLogReader)
+	if err != nil {
+		tb.Skip("skipping: no system log reader")
+	}
+}
+
+// integrationSystemLogger returns a slog.Logger configured for system logging
+// in integration tests.
 func integrationSystemLogger(t *testing.T) (l *slog.Logger) {
 	t.Helper()
 
@@ -52,6 +66,31 @@ func integrationSystemLogger(t *testing.T) (l *slog.Logger) {
 	})
 
 	return slog.New(h)
+}
+
+func TestSystemLogger_integration(t *testing.T) {
+	requireIntegration(t)
+	requireLogReader(t)
+
+	l := integrationSystemLogger(t)
+
+	since := time.Now()
+	sinceStr := since.Format(time.DateTime)
+
+	msg := strconv.FormatInt(since.UnixNano(), 10)
+
+	ctx := testutil.ContextWithTimeout(t, testTimeout)
+	l.DebugContext(ctx, msg)
+
+	require.EventuallyWithT(t, func(ct *assert.CollectT) {
+		findCtx, cancel := context.WithTimeout(ctx, testTimeout)
+		defer cancel()
+
+		ok, err := findInLog(findCtx, sinceStr, msg)
+		require.NoError(ct, err)
+
+		assert.True(ct, ok)
+	}, testTimeout, testTimeout/10)
 }
 
 // testLogger is a mock implementation of [agdcslog.SystemLogger] interface for
