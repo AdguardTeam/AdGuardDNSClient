@@ -21,6 +21,7 @@ import (
 // testTimeout is the common timeout for tests.
 const testTimeout = 1 * time.Second
 
+// testServiceName is the service name for integration tests.
 const testServiceName = "AdGuardDNSClientTest"
 
 // requireIntegration skips the test unless TEST_AGDCSLOG parses to true.
@@ -29,14 +30,15 @@ func requireIntegration(tb testing.TB) {
 
 	const envName = "TEST_AGDCSLOG"
 
-	val := os.Getenv(envName)
-	if val == "" {
-		tb.Skip("skipping: env is not set")
-	}
-
-	ok, err := strconv.ParseBool(val)
-	if err != nil || !ok {
-		tb.Skip("skipping: unexpected value")
+	switch v := os.Getenv(envName); v {
+	case "":
+		tb.Skipf("skipping: %s is not set", envName)
+	case "0":
+		tb.Skip("skipping: integration tests are disabled")
+	case "1":
+		// Go on.
+	default:
+		tb.Skipf(`skipping: %s must be "1" or "0", got %q`, envName, v)
 	}
 }
 
@@ -74,19 +76,16 @@ func TestSystemLogger_integration(t *testing.T) {
 
 	l := integrationSystemLogger(t)
 
-	since := time.Now()
-	sinceStr := since.Format(time.DateTime)
-
-	msg := strconv.FormatInt(since.UnixNano(), 10)
+	msg := strconv.FormatInt(time.Now().UnixNano(), 10)
 
 	ctx := testutil.ContextWithTimeout(t, testTimeout)
-	l.DebugContext(ctx, msg)
+	l.InfoContext(ctx, msg)
 
 	require.EventuallyWithT(t, func(ct *assert.CollectT) {
 		findCtx, cancel := context.WithTimeout(ctx, testTimeout)
 		defer cancel()
 
-		ok, err := findInLog(findCtx, sinceStr, msg)
+		ok, err := findInLog(findCtx, msg)
 		require.NoError(ct, err)
 
 		assert.True(ct, ok)

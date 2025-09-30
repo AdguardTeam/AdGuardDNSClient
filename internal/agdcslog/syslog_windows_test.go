@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/AdguardTeam/golibs/osutil/executil"
 )
@@ -15,7 +14,7 @@ import (
 const cmdLogReader = "wevtutil"
 
 // findInLog searches the Windows Application event log for the message.
-func findInLog(ctx context.Context, _, msg string) (ok bool, err error) {
+func findInLog(ctx context.Context, msg string) (ok bool, err error) {
 	var stdOut, stdErr bytes.Buffer
 
 	ms := testTimeout.Milliseconds()
@@ -23,7 +22,7 @@ func findInLog(ctx context.Context, _, msg string) (ok bool, err error) {
 
 	err = executil.Run(ctx, executil.SystemCommandConstructor{}, &executil.CommandConfig{
 		Path:   cmdLogReader,
-		Args:   []string{"qe", "Application", "/rd:true", "/f:text", "/q:" + query},
+		Args:   []string{"qe", "Application", "/rd:true", "/f:text", "/uni", "/q:" + query},
 		Stdout: &stdOut,
 		Stderr: &stdErr,
 	})
@@ -31,5 +30,9 @@ func findInLog(ctx context.Context, _, msg string) (ok bool, err error) {
 		return false, fmt.Errorf("log search failed: %w; stderr=%q", err, &stdErr)
 	}
 
-	return strings.Contains(stdOut.String(), msg), nil
+	// Strip NUL bytes from UTF-16LE output.
+	out := stdOut.Bytes()
+	out = bytes.ReplaceAll(out, []byte{0x00}, nil)
+
+	return bytes.Contains(out, []byte(msg)), nil
 }

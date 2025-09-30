@@ -15,8 +15,10 @@ import (
 const cmdLogReader = "journalctl"
 
 // findInLog searches the systemd journal for the message.
-func findInLog(ctx context.Context, since, msg string) (ok bool, err error) {
+func findInLog(ctx context.Context, msg string) (ok bool, err error) {
 	var stdOut, stdErr bytes.Buffer
+
+	since := "-" + testTimeout.String()
 
 	err = executil.Run(ctx, executil.SystemCommandConstructor{}, &executil.CommandConfig{
 		Path:   cmdLogReader,

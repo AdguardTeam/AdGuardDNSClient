@@ -15,12 +15,12 @@ import (
 const cmdLogReader = "log"
 
 // findInLog searches the macOS unified log for the message.
-func findInLog(ctx context.Context, since, msg string) (ok bool, err error) {
+func findInLog(ctx context.Context, msg string) (ok bool, err error) {
 	var stdOut, stdErr bytes.Buffer
 
 	err = executil.Run(ctx, executil.SystemCommandConstructor{}, &executil.CommandConfig{
 		Path:   cmdLogReader,
-		Args:   []string{"show", "--style", "syslog", "--start", since, "--debug"},
+		Args:   []string{"show", "--style", "syslog", "--last", testTimeout.String(), "--info"},
 		Stdout: &stdOut,
 		Stderr: &stdErr,
 	})
