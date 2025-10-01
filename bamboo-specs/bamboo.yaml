@@ -97,6 +97,13 @@
         'volumes':
             '${system.GO_CACHE_DIR}': '${bamboo.cacheGo}'
             '${system.GO_PKG_CACHE_DIR}': '${bamboo.cacheGoPkg}'
+    'final-tasks':
+      - 'test-parser':
+          # The default pattern, '**/test-reports/*.xml', works, so don't set
+          # the test-results property.
+          'type': 'junit'
+          'ignore-time': true
+      - 'clean'
     'key': 'TEST'
     'requirements':
     - 'adg-docker': 'true'
@@ -111,7 +118,18 @@
 
               set -e -f -u -x
 
-              make VERBOSE=1 go-deps go-test
+              make \
+                  TEST_REPORTS_DIR="./test-reports/" \
+                  VERBOSE=1 \
+                  go-tools \
+                  go-deps \
+                  go-test \
+                  ;
+
+              exit_code="$(cat ./test-reports/test-exit-code.txt)"
+              readonly exit_code
+
+              exit "$exit_code"
 
 'Artifact':
     'artifacts':
