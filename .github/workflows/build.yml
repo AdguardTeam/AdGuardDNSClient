@@ -16,6 +16,7 @@
     'runs-on': '${{ matrix.os }}'
     'env':
       'GO111MODULE': 'on'
+      'TEST_AGDCSLOG': '1'
     'strategy':
       'fail-fast': false
       'matrix':

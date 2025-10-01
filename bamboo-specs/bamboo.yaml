@@ -118,6 +118,8 @@
 
               set -e -f -u -x
 
+              export TEST_AGDCSLOG=1
+
               make \
                   TEST_REPORTS_DIR="./test-reports/" \
                   VERBOSE=1 \
