@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"context"
 	"log/slog"
+	"os"
+	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -14,6 +17,88 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// testTimeout is the common timeout for tests.
+const testTimeout = 1 * time.Second
+
+// testServiceName is the service name for integration tests.
+const testServiceName = "AdGuardDNSClientTest"
+
+// requireIntegration skips the test unless TEST_AGDCSLOG is set to "1".
+func requireIntegration(tb testing.TB) {
+	tb.Helper()
+
+	const envName = "TEST_AGDCSLOG"
+
+	switch v := os.Getenv(envName); v {
+	case "":
+		tb.Skipf("skipping: %s is not set", envName)
+	case "0":
+		tb.Skip("skipping: integration tests are disabled")
+	case "1":
+		// Go on.
+	default:
+		tb.Skipf(`skipping: %s must be "1" or "0", got %q`, envName, v)
+	}
+}
+
+// requireExec skips the test if the executable is not in the PATH environment
+// variable or the provided path does not exist.
+func requireExec(tb testing.TB, name string) {
+	tb.Helper()
+
+	_, err := exec.LookPath(name)
+	if err != nil {
+		tb.Skipf("skipping: executable %q not found on PATH", name)
+	}
+}
+
+// integrationSystemLogger returns a slog.Logger configured for system logging
+// in integration tests.
+func integrationSystemLogger(tb testing.TB) (l *slog.Logger) {
+	tb.Helper()
+
+	ctx := testutil.ContextWithTimeout(tb, testTimeout)
+	sl, err := agdcslog.NewSystemLogger(ctx, testServiceName)
+	require.NoError(tb, err)
+
+	testutil.CleanupAndRequireSuccess(tb, sl.Close)
+
+	h := agdcslog.NewSyslogHandler(sl, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})
+
+	return slog.New(h)
+}
+
+// requireEventuallyFound writes a message to the system log and observes it
+// using the provided finder function.
+func requireEventuallyFound(
+	tb testing.TB,
+	cmdLogReader string,
+	find func(ctx context.Context, msg string) (ok bool, err error),
+) {
+	tb.Helper()
+
+	requireIntegration(tb)
+	requireExec(tb, cmdLogReader)
+
+	l := integrationSystemLogger(tb)
+	msg := strconv.FormatInt(time.Now().UnixNano(), 10)
+
+	ctx := testutil.ContextWithTimeout(tb, testTimeout)
+	l.InfoContext(ctx, msg)
+
+	require.EventuallyWithT(tb, func(ct *assert.CollectT) {
+		findCtx, cancel := context.WithTimeout(ctx, testTimeout)
+		defer cancel()
+
+		ok, err := find(findCtx, msg)
+		require.NoError(ct, err)
+
+		assert.True(ct, ok)
+	}, testTimeout, testTimeout/10)
+}
 
 // testLogger is a mock implementation of [agdcslog.SystemLogger] interface for
 // tests.

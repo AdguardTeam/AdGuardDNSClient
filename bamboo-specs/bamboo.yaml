@@ -9,6 +9,7 @@
     'key': 'DNSCLIENT'
     'name': 'AdGuardDNSClient'
 'variables':
+    # NOTE:  The Test stage depends on BusyBox syslogd on Alpine.
     'dockerGo': 'adguard/go-builder:1.25.1--1'
     'maintainer': 'Adguard Go Team'
     'name': 'AdGuardDNSClient'
@@ -118,6 +119,16 @@
 
               set -e -f -u -x
 
+              export TEST_AGDCSLOG=1
+
+              # Run syslogd in the foreground (-n) so its PID can be captured,
+              # and enable the in-memory ring buffer (-C) so that logread can
+              # read messages during integration tests.
+              syslogd -n -C &
+
+              syslogd_pid="$!"
+              readonly syslogd_pid
+
               make \
                   TEST_REPORTS_DIR="./test-reports/" \
                   VERBOSE=1 \
@@ -128,6 +139,8 @@
 
               exit_code="$(cat ./test-reports/test-exit-code.txt)"
               readonly exit_code
+
+              kill "$syslogd_pid"
 
               exit "$exit_code"
 
